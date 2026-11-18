@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ControlPark - Centro de Control</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+</head>
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen pb-12">
+
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-square-parking text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight">ControlPark <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">Centro de Control</span></h1>
+                    <p class="text-xs text-slate-400">Gestión de Parqueaderos (Plano Zona Operativa: 4 cupos reservados / Máx 11)</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <div id="status-badge" class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="status-text">En ventana de relevo (2:00 PM)</span>
+                </div>
+                <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> Reiniciar Día
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
+
+        <!-- Banner de Estado / Semáforo Dinámico -->
+        <section id="semaforo-banner" class="rounded-2xl p-5 border transition-all duration-300 bg-emerald-950/20 border-emerald-500/30">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="semaforo-icon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <i class="fa-solid fa-circle-check"></i>
+                    </div>
+                    <div>
+                        <h2 id="semaforo-title" class="text-base font-bold text-emerald-400">¡Disponibilidad Óptima en Parqueaderos!</h2>
+                        <p id="semaforo-desc" class="text-sm text-slate-300">Hay espacio suficiente para los vehículos del turno tarde en los cupos del Centro de Control.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full md:w-auto text-center">
+                    <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">Capacidad Zona</span>
+                        <span class="text-lg font-bold text-blue-400">4 Cupos</span>
+                    </div>
+                    <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">Mañana salen</span>
+                        <span id="stat-mañana-salen" class="text-lg font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                        <span class="text-xs text-slate-400 block">Libres para Tarde</span>
+                        <span id="stat-libres" class="text-lg font-bold text-amber-400">4</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Paneles Principales -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+            <!-- TURNO MAÑANA -->
+            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col">
+                <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-amber-500/10 text-amber-400 p-2 rounded-lg border border-amber-500/20">
+                            <i class="fa-solid fa-sun text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">Turno Mañana (6:00 AM - 2:00 PM)</h3>
+                            <p class="text-xs text-slate-400">Operadores reportados en vehículo hoy</p>
+                        </div>
+                    </div>
+                    <span id="badge-total-mañana" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-semibold border border-slate-700">0 en carro</span>
+                </div>
+
+                <!-- Buscador Rápido -->
+                <div class="mb-4 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-sm"></i>
+                    <input type="text" id="search-operador" placeholder="Buscar operador o placa..." oninput="filtrarOperadores()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <!-- Lista de Operadores (Directorios) -->
+                <div class="space-y-2.5 overflow-y-auto max-h-[420px] pr-1" id="lista-operadores-container">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+
+            <!-- TURNO TARDE -->
+            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col">
+                <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg border border-indigo-500/20">
+                            <i class="fa-solid fa-moon text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">Turno Tarde (2:00 PM Entrada)</h3>
+                            <p class="text-xs text-slate-400">Solicitud de cupos de relevo (Plano 4 puestos)</p>
+                        </div>
+                    </div>
+                    <span id="badge-total-tarde" class="text-xs bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-full font-semibold border border-indigo-500/20">0 solicitantes</span>
+                </div>
+
+                <!-- Selector para pedir cupo tarde -->
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 mb-4 space-y-3">
+                    <label class="text-xs font-semibold text-slate-300 block">Selecciona tu nombre (Turno Tarde):</label>
+                    <div class="flex gap-2">
+                        <select id="select-tarde-operador" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
+                            <option value="">-- Selecciona operador --</option>
+                        </select>
+                        <button onclick="solicitarCupoTarde()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5">
+                            <i class="fa-solid fa-car-side"></i> Solicitar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Asignaciones y Relevo -->
+                <div class="space-y-3 overflow-y-auto max-h-[350px] pr-1" id="lista-tarde-container">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Script con los datos reales del Excel y lógica de la App -->
+    <script>
+        // Base de datos precargada con los 39 operadores de la lista oficial CC MT - BT
+        const operadoresData = [
+            { id: "1", nombre: "Diego Flechas", vehiculo: "Chevrolet Spark GT (Gris)", placa: "UBK915" },
+            { id: "2", nombre: "Julian Cadavid", vehiculo: "Seat Leon (Azul Mediterraneo)", placa: "GLT634" },
+            { id: "3", nombre: "Ferney Blanco", vehiculo: "Volkswagen Jetta (Rojo)", placa: "RDK766" },
+            { id: "4", nombre: "Fabio Velasquez", vehiculo: "Renault Logan (Rojo)", placa: "RZU577" },
+            { id: "5", nombre: "Nestor Garcia", vehiculo: "Chevrolet Sonic (Plateado)", placa: "DQQ138" },
+            { id: "6", nombre: "Arnol Chavez", vehiculo: "Volkswagen Bora (Gris)", placa: "DAI751" },
+            { id: "7", nombre: "Arnol Chavez", vehiculo: "Chevrolet Aveo (Verde Sombra)", placa: "DCM930" },
+            { id: "8", nombre: "Julio Pachon", vehiculo: "KIA Rio (Negro)", placa: "RIZ-879" },
+            { id: "9", nombre: "Julio Pachon", vehiculo: "Mercedes Benz Gla 200 (Gris)", placa: "MU-224" },
+            { id: "10", nombre: "Yeison Toro", vehiculo: "Peugeot (Rojo)", placa: "FSQ467" },
+            { id: "11", nombre: "Yecid Beltran", vehiculo: "Chevrolet Sonic (Blanco)", placa: "DJV394" },
+            { id: "12", nombre: "Deyvid Castillo", vehiculo: "Volkswagen Gol (Plata Sirius)", placa: "DQP986" },
+            { id: "13", nombre: "Sebastian Rodas", vehiculo: "Volkswagen Voyage (Blanco)", placa: "DMW327" },
+            { id: "14", nombre: "Edwin Sanchez", vehiculo: "Ford Focus (Rojo)", placa: "NCX 538" },
+            { id: "15", nombre: "Jhon Jairo Guevara", vehiculo: "Renault Duster (Verde Militar)", placa: "URT036" },
+            { id: "16", nombre: "Pablo Muñoz", vehiculo: "KIA Sportage (Plata)", placa: "RHY 308" },
+            { id: "17", nombre: "Leonardo Sanchez", vehiculo: "MAZDA 3 (Gris)", placa: "ELP 168" },
+            { id: "18", nombre: "Nestor Lozano", vehiculo: "Chevrolet Optra (Azul)", placa: "DCE797" },
+            { id: "19", nombre: "Martin Ibañez", vehiculo: "Honda Civic (Azul)", placa: "BDB060" },
+            { id: "20", nombre: "Jhon Esquivel", vehiculo: "Chevrolet Sonic (Blanco)", placa: "HSS819" },
+            { id: "21", nombre: "Miguel Bravo", vehiculo: "Renault Logan (Rojo)", placa: "UUN411" },
+            { id: "22", nombre: "German Figueroa", vehiculo: "Renault Logan (Rojo)", placa: "HCK572" },
+            { id: "23", nombre: "German Figueroa", vehiculo: "Renault Clio (Gris)", placa: "IJV727" },
+            { id: "24", nombre: "Oscar Bulla", vehiculo: "Peugeot 208 (Gris)", placa: "EMT763" },
+            { id: "25", nombre: "Carlos Diego Guzmán", vehiculo: "MAZDA CX30 (ROJO)", placa: "JNT902" },
+            { id: "26", nombre: "Daniel Hernandez", vehiculo: "MAZDA CX5 (ROJO)", placa: "MPN756" },
+            { id: "27", nombre: "Edgar Dominguez", vehiculo: "Suzuki Ertiga (Plata)", placa: "URX729" },
+            { id: "28", nombre: "Fredy Bohorquez", vehiculo: "Nissan Frontier (Rojo)", placa: "URV390" },
+            { id: "29", nombre: "Manuel Abril", vehiculo: "Nissan XtraIL (Gris)", placa: "IJL520" },
+            { id: "30", nombre: "Giovanni Suarez", vehiculo: "Chevrolet Sonic (Rojo)", placa: "ZYS744" },
+            { id: "31", nombre: "Lina Peña", vehiculo: "Mazda 3 (Rojo)", placa: "FVS902" },
+            { id: "32", nombre: "Darvis Cardona", vehiculo: "KIA Cerato 2000 (Blanco)", placa: "REW409" },
+            { id: "33", nombre: "Luis Montaño", vehiculo: "Pulsar 200ns (Rojo)", placa: "DYO65D" },
+            { id: "34", nombre: "Pilar Viasus", vehiculo: "Renault Captur (Rojo)", placa: "DMW798" },
+            { id: "35", nombre: "José Ricardo Parra", vehiculo: "FIAT 1 Way", placa: "FIZ978" },
+            { id: "36", nombre: "Óscar Valderrama", vehiculo: "Ford Ecosport", placa: "GMU862" },
+            { id: "37", nombre: "Diego Granados", vehiculo: "Ford Fiesta (Plata)", placa: "ZYS867" },
+            { id: "38", nombre: "Edwin Cuenca", vehiculo: "KIA Picanto (Negro)", placa: "HKQ008" },
+            { id: "39", nombre: "Edwin Cuenca", vehiculo: "Renault Twingo (Vinotinto)", placa: "DCU457" }
+        ];
+
+        // Estado de la app (guardado en localStorage)
+        let estadoApp = JSON.parse(localStorage.getItem('controlpark_v2_state')) || {
+            mañanaEnCarro: ["1", "3", "25", "15"], // Por defecto algunos simulados (incluyendo a Carlos Diego)
+            mañanaSalieron: ["1"], // Quienes ya salieron y liberaron puesto
+            tardeSolicitantes: [
+                { id: "t1", nombre: "Julian Cadavid", hora: "1:50 PM" },
+                { id: "t2", nombre: "Daniel Hernandez", hora: "1:55 PM" }
+            ]
+        };
+
+        function guardarEstado() {
+            localStorage.setItem('controlpark_v2_state', JSON.stringify(estadoApp));
+            renderizarApp();
+        }
+
+        function resetData() {
+            if(confirm("¿Deseas reiniciar los estados del día?")) {
+                estadoApp = { mañanaEnCarro: ["25"], mañanaSalieron: [], tardeSolicitantes: [] };
+                guardarEstado();
+            }
+        }
+
+        function toggleTurnoMañana(id) {
+            const index = estadoApp.mañanaEnCarro.indexOf(id);
+            if(index > -1) {
+                // Quitar de en carro
+                estadoApp.mañanaEnCarro.splice(index, 1);
+                // Si estaba marcado como salido, quitarlo también
+                estadoApp.mañanaSalieron = estadoApp.mañanaSalieron.filter(item => item !== id);
+            } else {
+                // Poner en carro
+                estadoApp.mañanaEnCarro.push(id);
+            }
+            guardarEstado();
+        }
+
+        function toggleSalidaMañana(id) {
+            const index = estadoApp.mañanaSalieron.indexOf(id);
+            if(index > -1) {
+                estadoApp.mañanaSalieron.splice(index, 1);
+            } else {
+                if(!estadoApp.mañanaEnCarro.includes(id)) {
+                    estadoApp.mañanaEnCarro.push(id);
+                }
+                estadoApp.mañanaSalieron.push(id);
+            }
+            guardarEstado();
+        }
+
+        function solicitarCupoTarde() {
+            const select = document.getElementById('select-tarde-operador');
+            const nombreSeleccionado = select.value;
+            if(!nombreSeleccionado) return alert("Selecciona un operador del turno tarde.");
+
+            // Verificar si ya está en la lista
+            if(estadoApp.tardeSolicitantes.some(s => s.nombre === nombreSeleccionado)) {
+                return alert("Este operador ya solicitó cupo para la tarde.");
+            }
+
+            const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            estadoApp.tardeSolicitantes.push({
+                id: 't_' + Date.now(),
+                nombre: nombreSeleccionado,
+                hora: horaActual
+            });
+            select.value = "";
+            guardarEstado();
+        }
+
+        function quitarSolicitanteTarde(id) {
+            estadoApp.tardeSolicitantes = estadoApp.tardeSolicitantes.filter(s => s.id !== id);
+            guardarEstado();
+        }
+
+        function filtrarOperadores() {
+            renderizarApp();
+        }
+
+        function renderizarApp() {
+            const filtro = document.getElementById('search-operador').value.toLowerCase();
+            const containerMañana = document.getElementById('lista-operadores-container');
+            const containerTarde = document.getElementById('lista-tarde-container');
+            const selectTarde = document.getElementById('select-tarde-operador');
+
+            containerMañana.innerHTML = '';
+            containerTarde.innerHTML = '';
+
+            // Llenar selector de tarde
+            const valorActualSelect = selectTarde.value;
+            selectTarde.innerHTML = '<option value="">-- Selecciona operador --</option>';
+            operadoresData.forEach(op => {
+                const opt = document.createElement('option');
+                opt.value = op.nombre;
+                opt.textContent = `${op.nombre} - ${op.vehiculo} [${op.placa}]`;
+                selectTarde.appendChild(opt);
+            });
+            selectTarde.value = valorActualSelect;
+
+            let filtrados = operadoresData.filter(op => 
+                op.nombre.toLowerCase().includes(filtro) || op.placa.toLowerCase().includes(filtro) || op.vehiculo.toLowerCase().includes(filtro)
+            );
+
+            // Renderizar Turno Mañana
+            filtrados.forEach(op => {
+                const enCarro = estadoApp.mañanaEnCarro.includes(op.id);
+                const yaSalio = estadoApp.mañanaSalieron.includes(op.id);
+
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border transition flex items-center justify-between gap-2 ${enCarro ? (yaSalio ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-slate-900 border-blue-500/40') : 'bg-slate-950/40 border-slate-800/80'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0">
+                        <button onclick="toggleTurnoMañana('${op.id}')" class="w-7 h-7 rounded-lg flex items-center justify-center border transition ${enCarro ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-600 hover:border-slate-500'}">
+                            <i class="fa-solid fa-car text-xs"></i>
+                        </button>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-slate-200 truncate">${op.nombre}</h4>
+                            <p class="text-[11px] text-slate-400 truncate">${op.vehiculo} • <span class="text-blue-400 font-mono font-semibold">${op.placa}</span></p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        ${enCarro ? `
+                            <button onclick="toggleSalidaMañana('${op.id}')" class="text-[11px] px-2.5 py-1 rounded-lg border font-medium transition ${yaSalio ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-600/20' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}">
+                                ${yaSalio ? '<i class="fa-solid fa-check mr-1"></i> Ya salí' : 'Marcar Salida'}
+                            </button>
+                        ` : '<span class="text-[10px] text-slate-500 px-2 py-0.5">Sin carro hoy</span>'}
+                    </div>
+                `;
+                containerMañana.appendChild(card);
+            });
+
+            // Contadores y Semaforo
+            const totalEnCarro = estadoApp.mañanaEnCarro.length;
+            const totalSalieron = estadoApp.mañanaSalieron.length;
+            const totalSolicitantes = estadoApp.tardeSolicitantes.length;
+
+            document.getElementById('badge-total-mañana').textContent = `${totalEnCarro} en carro`;
+            document.getElementById('badge-total-tarde').textContent = `${totalSolicitantes} solicitantes`;
+            document.getElementById('stat-mañana-salen').textContent = totalSalieron;
+
+            // Según el plano de parqueaderos, el Centro de Control tiene 4 cupos reservados en amarillo
+            const cuposDisponibles = Math.max(0, 4 - totalSolicitantes + totalSalieron);
+            document.getElementById('stat-libres').textContent = cuposDisponibles;
+
+            // Actualizar Semaforo Banner
+            const banner = document.getElementById('semaforo-banner');
+            const icon = document.getElementById('semaforo-icon');
+            const title = document.getElementById('semaforo-title');
+            const desc = document.getElementById('semaforo-desc');
+
+            if (cuposDisponibles >= 2) {
+                banner.className = "rounded-2xl p-5 border transition-all duration-300 bg-emerald-950/20 border-emerald-500/30";
+                icon.className = "w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                title.className = "text-base font-bold text-emerald-400";
+                title.textContent = "¡Alta Disponibilidad en Cupos!";
+                desc.textContent = "Hay espacio libre en los 4 parqueaderos designados del Centro de Control.";
+            } else if (cuposDisponibles === 1) {
+                banner.className = "rounded-2xl p-5 border transition-all duration-300 bg-amber-950/20 border-amber-500/30";
+                icon.className = "w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30";
+                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                title.className = "text-base font-bold text-amber-400";
+                title.textContent = "¡Último Cupo Disponible!";
+                desc.textContent = "Queda 1 solo espacio libre de relevo en el área del Centro de Control.";
+            } else {
+                banner.className = "rounded-2xl p-5 border transition-all duration-300 bg-rose-950/20 border-rose-500/30";
+                icon.className = "w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                icon.innerHTML = '<i class="fa-solid fa-ban"></i>';
+                title.className = "text-base font-bold text-rose-400";
+                title.textContent = "Cupos Copados";
+                desc.textContent = "Los 4 puestos asignados al Centro de Control están ocupados o solicitados.";
+            }
+
+            // Renderizar Turno Tarde
+            if(estadoApp.tardeSolicitantes.length === 0) {
+                containerTarde.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                        Ningún operador del turno tarde ha solicitado cupo todavía.
+                    </div>
+                `;
+            } else {
+                estadoApp.tardeSolicitantes.forEach((sol, index) => {
+                    const item = document.createElement('div');
+                    item.className = "p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2";
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-xs font-bold">
+                                #${index + 1}
+                            </div>
+                            <div>
+                                <h4 class="text-xs font-bold text-slate-200">${sol.nombre}</h4>
+                                <p class="text-[11px] text-slate-400">Solicitado a las ${sol.hora} ${index < 4 ? '• <span class="text-emerald-400 font-semibold">Cupo Asignado (Zona Amarilla)</span>' : '• <span class="text-amber-400">En Lista de Espera</span>'}</p>
+                            </div>
+                        </div>
+                        <button onclick="quitarSolicitanteTarde('${sol.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs transition">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    `;
+                    containerTarde.appendChild(item);
+                });
+            }
+        }
+
+        // Inicializar al cargar
+        document.addEventListener("DOMContentLoaded", renderizarApp);
+    </script>
+</body>
+</html>
