@@ -1,1594 +1,388 @@
 <!DOCTYPE html>
-<html lang="es" class="dark">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ControlPark | Centro de Control (Relevo Zona Amarilla)</title>
-    <!-- Tailwind CSS -->
+    <title>ControlPark - Centro de Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-    <!-- Google Fonts: Inter & JetBrains Mono -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    fontFamily: {
-                        sans: ['Inter', 'sans-serif'],
-                        mono: ['JetBrains Mono', 'monospace'],
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        ::-webkit-scrollbar {
-            width: 6px;
-            height: 6px;
-        }
-        ::-webkit-scrollbar-track {
-            background: #020617;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #1e293b;
-            border-radius: 9999px;
-        }
-        ::-webkit-scrollbar-thumb:hover {
-            background: #334155;
-        }
-        @keyframes pulse-subtle {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.72; }
-        }
-        .animate-pulse-subtle {
-            animation: pulse-subtle 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-        }
-    </style>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
 </head>
-<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans antialiased selection:bg-indigo-500 selection:text-white">
+<body class="bg-slate-950 text-slate-100 font-sans min-h-screen pb-12">
 
-    <!-- Toast Notification Container (Replaces alert) -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none px-4 sm:px-0"></div>
-
-    <!-- Header / Top Navigation Bar -->
-    <header class="sticky top-0 z-30 bg-slate-950/90 backdrop-blur-md border-b border-slate-800/80">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3.5">
-            
-            <!-- Brand & Live Clock -->
-            <div class="flex items-center justify-between gap-3">
-                <div class="flex items-center gap-3">
-                    <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-blue-600 flex items-center justify-center shadow-lg shadow-indigo-500/20 shrink-0 font-extrabold text-white text-xl">
-                        P
-                    </div>
-                    <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <h1 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">ControlPark</h1>
-                            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 rounded-full">
-                                CENTRO DE CONTROL
-                            </span>
-                            <span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider bg-amber-500/15 text-amber-300 border border-amber-500/30 rounded-full">
-                                Lun–Vie • Orden de Llegada
-                            </span>
-                        </div>
-                        <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5 flex-wrap">
-                            <span id="live-date">Cargando fecha...</span>
-                            <span>•</span>
-                            <span id="live-clock" class="font-mono font-bold text-slate-200">--:--:--</span>
-                            <span id="active-shift-badge" class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-800 text-emerald-400 border border-slate-700">
-                                Detectando turno...
-                            </span>
-                        </div>
-                    </div>
+    <!-- Header -->
+    <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-50 shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blue-600 p-2.5 rounded-xl text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-solid fa-square-parking text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-lg font-bold tracking-tight">ControlPark <span class="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full border border-blue-500/30">Centro de Control</span></h1>
+                    <p class="text-xs text-slate-400">Gestión de Parqueaderos (Plano Zona Operativa: 4 cupos reservados / Máx 11)</p>
                 </div>
             </div>
-
-            <!-- Header Action Buttons -->
-            <div class="flex items-center gap-2 flex-wrap">
-                <button onclick="abrirModalPlano()" class="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border border-amber-500/30 text-xs font-semibold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-map-location-dot"></i>
-                    <span>Plano Zona (12)</span>
-                </button>
-
-                <button onclick="abrirModalVehiculo()" class="px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-address-book text-indigo-400"></i>
-                    <span id="btn-directorio-label">Directorio (41)</span>
-                </button>
-
-                <button onclick="descargarHTML()" class="px-3 py-2 rounded-xl bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 text-xs font-semibold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-download"></i>
-                    <span>Descargar index.html</span>
-                </button>
-
-                <button onclick="abrirModalConfirmarReinicio()" class="px-3 py-2 rounded-xl bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 border border-rose-500/30 text-xs font-semibold transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-rotate-right"></i>
-                    <span>Reiniciar Día / Semana</span>
+            
+            <div class="flex items-center gap-3">
+                <div id="status-badge" class="px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span id="status-text">En ventana de relevo (2:00 PM)</span>
+                </div>
+                <button onclick="resetData()" class="bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs px-3 py-1.5 rounded-lg border border-slate-700 transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-rotate-right"></i> Reiniciar Día
                 </button>
             </div>
         </div>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-6 space-y-6">
+    <!-- Main Container -->
+    <main class="max-w-7xl mx-auto px-4 mt-6 space-y-6">
 
-        <!-- Weekend Operational Notice (Shown automatically on Saturday/Sunday) -->
-        <section id="weekend-banner" class="hidden rounded-2xl border border-cyan-500/40 bg-cyan-950/30 p-4 flex items-start gap-3">
-            <div class="w-10 h-10 rounded-xl bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 flex items-center justify-center shrink-0 mt-0.5">
-                <i class="fa-solid fa-calendar-check text-lg"></i>
-            </div>
-            <div>
-                <div class="flex items-center gap-2 flex-wrap">
-                    <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
-                        FIN DE SEMANA • PARQUEADERO LIBRE
-                    </span>
-                </div>
-                <h2 class="text-sm sm:text-base font-bold text-white mt-1">
-                    Los fines de semana (Sábado y Domingo) no aplica la restricción de Zona Amarilla
-                </h2>
-                <p class="text-xs text-cyan-100/80 mt-0.5">
-                    Puedes usar el selector semanal de abajo para consultar o adelantar la planificación de <strong>Lunes a Viernes</strong>.
-                </p>
-            </div>
-        </section>
-
-        <!-- Weekly Mon–Fri Selector Bar -->
-        <section class="bg-slate-900/90 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-3">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                <div class="flex items-center gap-2">
-                    <i class="fa-solid fa-calendar-week text-indigo-400"></i>
-                    <span class="text-xs sm:text-sm font-bold text-white">Planificación Semanal (Lunes a Viernes)</span>
-                    <span id="selected-day-pill" class="px-2 py-0.5 rounded-md bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-[11px] font-bold">
-                        Viendo: Lunes
-                    </span>
-                </div>
-                <p class="text-[11px] text-slate-400">
-                    Selecciona el día hábil para registrar ingreso, hora estimada de salida (13:00 / 13:30 / 14:00) e intención tarde.
-                </p>
-            </div>
-
-            <div id="weekday-tabs-container" class="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                <!-- Populated dynamically via JS for Lunes, Martes, Miércoles, Jueves, Viernes -->
-            </div>
-        </section>
-
-        <!-- Radar / Panorama de Relevo Banner (Smart Traffic Light) -->
-        <section id="status-banner" class="rounded-2xl border p-4 sm:p-5 transition-all duration-300 bg-emerald-950/30 border-emerald-500/40">
-            <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div class="flex items-start gap-3.5">
-                    <div id="banner-icon-box" class="w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mt-0.5">
-                        <i id="banner-icon" class="fa-solid fa-satellite-dish text-xl"></i>
+        <!-- Banner de Estado / Semáforo Dinámico -->
+        <section id="semaforo-banner" class="rounded-2xl p-5 border transition-all duration-300 bg-emerald-950/20 border-emerald-500/30">
+            <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-center gap-4">
+                    <div id="semaforo-icon" class="w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+                        <i class="fa-solid fa-circle-check"></i>
                     </div>
                     <div>
-                        <div class="flex items-center gap-2 flex-wrap">
-                            <span id="banner-pill" class="px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                                RADAR DE RELEVO
-                            </span>
-                            <span id="banner-breakdown" class="text-xs font-mono text-slate-300">
-                                0 CC mañana vs. 0 intenciones tarde
-                            </span>
-                        </div>
-                        <h2 id="banner-title" class="text-base sm:text-lg font-bold text-white mt-1.5">
-                            Calculando panorama del día...
-                        </h2>
-                        <p id="banner-subtitle" class="text-xs sm:text-sm text-slate-300/90 mt-0.5">
-                            Recuerda: los 12 puestos de Zona Amarilla son compartidos con otras áreas y se asignan físicamente en estricto orden de llegada (sin reserva).
-                        </p>
+                        <h2 id="semaforo-title" class="text-base font-bold text-emerald-400">¡Disponibilidad Óptima en Parqueaderos!</h2>
+                        <p id="semaforo-desc" class="text-sm text-slate-300">Hay espacio suficiente para los vehículos del turno tarde en los cupos del Centro de Control.</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full md:w-auto text-center">
+                    <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">Capacidad Zona</span>
+                        <span class="text-lg font-bold text-blue-400">4 Cupos</span>
+                    </div>
+                    <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800">
+                        <span class="text-xs text-slate-400 block">Mañana salen</span>
+                        <span id="stat-mañana-salen" class="text-lg font-bold text-emerald-400">0</span>
+                    </div>
+                    <div class="bg-slate-900/80 px-4 py-2 rounded-xl border border-slate-800 col-span-2 sm:col-span-1">
+                        <span class="text-xs text-slate-400 block">Libres para Tarde</span>
+                        <span id="stat-libres" class="text-lg font-bold text-amber-400">4</span>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- 4 KPI Summary Cards -->
-        <section class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-            <!-- KPI 1: VEHÍCULOS CC MAÑANA -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400">Vehículos CC Mañana</p>
-                        <div class="flex items-baseline gap-2 mt-1.5">
-                            <span id="kpi-morning-total" class="text-2xl sm:text-3xl font-extrabold font-mono text-blue-400">0</span>
-                            <span class="text-xs text-slate-400">en juego</span>
-                        </div>
-                    </div>
-                    <div class="p-2.5 bg-blue-500/10 border border-blue-500/20 rounded-xl text-blue-400 hidden sm:flex">
-                        <i class="fa-solid fa-sun"></i>
-                    </div>
-                </div>
-                <p id="kpi-morning-sub" class="text-[11px] sm:text-xs text-slate-300 mt-3 pt-2.5 border-t border-slate-800/80">
-                    0 aún parqueados • 0 ya salieron
-                </p>
-            </div>
+        <!-- Paneles Principales -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
-            <!-- KPI 2: INTENCIONES TARDE (2 PM) -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400">Intenciones Tarde (2 PM)</p>
-                        <div class="flex items-baseline gap-2 mt-1.5">
-                            <span id="kpi-afternoon-total" class="text-2xl sm:text-3xl font-extrabold font-mono text-indigo-400">0</span>
-                            <span class="text-xs text-slate-400">vehículos</span>
-                        </div>
-                    </div>
-                    <div class="p-2.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 hidden sm:flex">
-                        <i class="fa-solid fa-moon"></i>
-                    </div>
-                </div>
-                <p class="text-[11px] sm:text-xs text-slate-400 mt-3 pt-2.5 border-t border-slate-800/80">
-                    Demanda estimada CC
-                </p>
-            </div>
-
-            <!-- KPI 3: BALANCE DE RELEVO CC -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400">Balance de Relevo CC</p>
-                        <div class="flex items-baseline gap-2 mt-1.5">
-                            <span id="kpi-balance-value" class="text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400">0</span>
-                            <span id="kpi-balance-unit" class="text-xs text-slate-400">puestos ref.</span>
-                        </div>
-                    </div>
-                    <div class="p-2.5 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 hidden sm:flex">
-                        <i class="fa-solid fa-scale-balanced"></i>
-                    </div>
-                </div>
-                <p id="kpi-balance-sub" class="text-[11px] sm:text-xs text-emerald-400/90 mt-3 pt-2.5 border-t border-slate-800/80 font-medium">
-                    Equilibrio de relevo
-                </p>
-            </div>
-
-            <!-- KPI 4: PROYECCIÓN SALIDAS MAÑANA -->
-            <div class="bg-slate-900/90 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col justify-between">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400">Salidas Estimadas CC</p>
-                        <div class="flex items-baseline gap-2 mt-1.5">
-                            <span id="kpi-exits-summary" class="text-sm sm:text-base font-extrabold font-mono text-amber-400">0 • 0 • 0</span>
-                        </div>
-                    </div>
-                    <div class="p-2.5 bg-amber-500/10 border border-amber-500/20 rounded-xl text-amber-400 hidden sm:flex">
-                        <i class="fa-solid fa-clock"></i>
-                    </div>
-                </div>
-                <p id="kpi-exits-breakdown" class="text-[11px] sm:text-xs text-slate-300 mt-3 pt-2.5 border-t border-slate-800/80 font-mono">
-                    13:00 (0) • 13:30 (0) • 14:00 (0)
-                </p>
-            </div>
-        </section>
-
-        <!-- Visualizador de Puestos en Juego (Radar de Relevo) -->
-        <section class="bg-slate-900/85 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4">
-            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800 pb-3.5">
-                <div>
-                    <div class="flex items-center gap-2 flex-wrap">
-                        <i class="fa-solid fa-arrows-rotate text-amber-400"></i>
-                        <h3 id="radar-section-title" class="text-base sm:text-lg font-bold text-white">Radar de Relevo — Puestos en Juego (Lunes)</h3>
-                    </div>
-                    <p class="text-xs text-slate-400 mt-0.5">
-                        Muestra los vehículos CC de la mañana, su hora estimada de salida (13:00, 13:30 o 14:00) y el cruce referencial con las intenciones de la tarde.
-                    </p>
-                </div>
-                <div class="flex items-center gap-2 shrink-0">
-                    <button onclick="limpiarDiaActual()" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-semibold transition flex items-center gap-1.5">
-                        <i class="fa-solid fa-eraser text-rose-400"></i>
-                        <span>Limpiar este día</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Dynamic Relay Cards Grid -->
-            <div id="relay-radar-container">
-                <!-- Populated dynamically by JS -->
-            </div>
-
-            <!-- Extra Intentions Alert (if afternoon intentions > morning CC cars) -->
-            <div id="extra-intentions-container" class="hidden">
-                <!-- Populated dynamically when tarde > mañana -->
-            </div>
-        </section>
-
-        <!-- Main Two-Column Management Workspace -->
-        <section class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-            <!-- LEFT COLUMN: Turno Mañana (06:00 - 14:00) -->
-            <div class="lg:col-span-6 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col">
-                <div class="flex items-center justify-between gap-2 pb-3.5 border-b border-slate-800">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-                            <i class="fa-solid fa-sun"></i>
+            <!-- TURNO MAÑANA -->
+            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col">
+                <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-amber-500/10 text-amber-400 p-2 rounded-lg border border-amber-500/20">
+                            <i class="fa-solid fa-sun text-lg"></i>
                         </div>
                         <div>
-                            <h3 id="morning-col-title" class="text-base sm:text-lg font-bold text-white">Turno Mañana <span class="text-xs font-mono font-normal text-slate-400">(06:00 - 14:00)</span></h3>
-                            <p class="text-xs text-slate-400">Registra tu vehículo y elige tu hora estimada de salida (13:00, 13:30 o 14:00).</p>
+                            <h3 class="font-bold text-sm">Turno Mañana (6:00 AM - 2:00 PM)</h3>
+                            <p class="text-xs text-slate-400">Operadores reportados en vehículo hoy</p>
                         </div>
                     </div>
-                    <span id="badge-morning-count" class="px-2.5 py-1 rounded-lg bg-blue-500/15 border border-blue-500/30 text-blue-300 font-mono text-xs font-bold shrink-0">
-                        0 vehículos
-                    </span>
+                    <span id="badge-total-mañana" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-1 rounded-full font-semibold border border-slate-700">0 en carro</span>
                 </div>
 
-                <!-- Quick Morning Registration Bar with Mandatory Exit Hour Selector -->
-                <div class="mt-3.5 bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
-                    <div class="flex items-center justify-between gap-2">
-                        <span class="text-xs font-semibold text-slate-300">Registro rápido en vehículo (Mañana):</span>
-                        <span class="text-[11px] text-amber-300 font-semibold">Salida obligatoria: 13:00 / 13:30 / 14:00</span>
+                <!-- Buscador Rápido -->
+                <div class="mb-4 relative">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-3 text-slate-500 text-sm"></i>
+                    <input type="text" id="search-operador" placeholder="Buscar operador o placa..." oninput="filtrarOperadores()" class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-4 py-2 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500">
+                </div>
+
+                <!-- Lista de Operadores (Directorios) -->
+                <div class="space-y-2.5 overflow-y-auto max-h-[420px] pr-1" id="lista-operadores-container">
+                    <!-- Se llena dinámicamente -->
+                </div>
+            </div>
+
+            <!-- TURNO TARDE -->
+            <div class="bg-slate-900/70 border border-slate-800 rounded-2xl p-5 flex flex-col">
+                <div class="flex justify-between items-center pb-4 border-b border-slate-800 mb-4">
+                    <div class="flex items-center gap-3">
+                        <div class="bg-indigo-500/10 text-indigo-400 p-2 rounded-lg border border-indigo-500/20">
+                            <i class="fa-solid fa-moon text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm">Turno Tarde (2:00 PM Entrada)</h3>
+                            <p class="text-xs text-slate-400">Solicitud de cupos de relevo (Plano 4 puestos)</p>
+                        </div>
                     </div>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <select id="select-manana-operador" class="flex-1 min-w-0 truncate bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-blue-500">
+                    <span id="badge-total-tarde" class="text-xs bg-indigo-500/10 text-indigo-400 px-2.5 py-1 rounded-full font-semibold border border-indigo-500/20">0 solicitantes</span>
+                </div>
+
+                <!-- Selector para pedir cupo tarde -->
+                <div class="bg-slate-950/60 p-4 rounded-xl border border-slate-800 mb-4 space-y-3">
+                    <label class="text-xs font-semibold text-slate-300 block">Selecciona tu nombre (Turno Tarde):</label>
+                    <div class="flex gap-2">
+                        <select id="select-tarde-operador" class="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-indigo-500">
                             <option value="">-- Selecciona operador --</option>
                         </select>
-                        <select id="select-manana-hora-salida" aria-label="Hora estimada de salida" class="sm:w-32 bg-slate-900 border border-amber-500/40 rounded-xl px-3 py-2 text-xs sm:text-sm font-mono font-bold text-amber-300 focus:outline-none focus:border-amber-400">
-                            <option value="13:00">Sale 13:00</option>
-                            <option value="13:30">Sale 13:30</option>
-                            <option value="14:00" selected>Sale 14:00</option>
-                        </select>
-                        <button onclick="registrarIngresoMananaDesdeSelector()" class="shrink-0 whitespace-nowrap bg-blue-600 hover:bg-blue-500 active:scale-[0.99] text-white font-bold text-xs sm:text-sm px-3.5 py-2 rounded-xl transition shadow-lg shadow-blue-600/20 flex items-center justify-center gap-1.5">
-                            <i class="fa-solid fa-car"></i>
-                            <span>Registrar</span>
+                        <button onclick="solicitarCupoTarde()" class="bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs px-4 py-2 rounded-xl transition shadow-lg shadow-indigo-600/20 flex items-center gap-1.5">
+                            <i class="fa-solid fa-car-side"></i> Solicitar
                         </button>
                     </div>
                 </div>
 
-                <!-- Search & Quick Filter -->
-                <div class="mt-3.5 flex flex-col sm:flex-row gap-2">
-                    <div class="relative flex-1">
-                        <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500 text-xs"></i>
-                        <input type="text" id="search-morning" oninput="renderizarListaManana()" placeholder="Buscar por nombre, placa o vehículo..." class="w-full bg-slate-950 border border-slate-800 focus:border-indigo-500 rounded-xl pl-9 pr-3 py-2 text-xs sm:text-sm text-slate-100 placeholder-slate-500 focus:outline-none">
-                    </div>
-                    <button onclick="toggleFiltroSoloVehiculo()" id="btn-filtro-vehiculo" class="px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0">
-                        <i class="fa-solid fa-filter text-indigo-400"></i>
-                        <span>Ver solo en vehículo</span>
-                    </button>
-                </div>
-
-                <!-- Morning Operators List -->
-                <div id="morning-list-container" class="mt-3.5 space-y-2.5 max-h-[560px] overflow-y-auto pr-1">
-                    <!-- Populated via JS -->
+                <!-- Asignaciones y Relevo -->
+                <div class="space-y-3 overflow-y-auto max-h-[350px] pr-1" id="lista-tarde-container">
+                    <!-- Se llena dinámicamente -->
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: Turno Tarde (Entrada 14:00 - Intención de Vehículo) -->
-            <div class="lg:col-span-6 bg-slate-900/80 border border-slate-800 rounded-2xl p-4 sm:p-5 flex flex-col">
-                <div class="flex items-center justify-between gap-2 pb-3.5 border-b border-slate-800">
-                    <div class="flex items-center gap-2.5">
-                        <div class="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shrink-0">
-                            <i class="fa-solid fa-moon"></i>
-                        </div>
-                        <div>
-                            <h3 id="afternoon-col-title" class="text-base sm:text-lg font-bold text-white">Turno Tarde <span class="text-xs font-mono font-normal text-slate-400">(Entrada 14:00 - Intención)</span></h3>
-                            <p class="text-xs text-slate-400">Reporta si llevarás vehículo para calcular demanda y orden de relevo.</p>
-                        </div>
-                    </div>
-                    <span id="badge-afternoon-count" class="px-2.5 py-1 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-300 font-mono text-xs font-bold shrink-0">
-                        0 intenciones
-                    </span>
-                </div>
-
-                <!-- Operational Disclaimer Note -->
-                <div class="mt-3.5 bg-indigo-950/35 border border-indigo-500/30 rounded-xl p-3 text-xs text-indigo-200 flex items-start gap-2.5">
-                    <i class="fa-solid fa-circle-info text-indigo-400 mt-0.5 shrink-0"></i>
-                    <p><strong>No es reserva garantizada.</strong> Registra tu intención para medir demanda y coordinar el relevo según las salidas de 13:00, 13:30 y 14:00 en orden de llegada.</p>
-                </div>
-
-                <!-- Shielded One-Click Selector Box -->
-                <div class="mt-3.5 bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-2.5">
-                    <label for="select-tarde-operador" class="text-xs font-semibold text-slate-300 flex items-center justify-between gap-2">
-                        <span>¿Entras a las 2:00 PM en vehículo? Elige tu perfil:</span>
-                        <span class="text-[11px] font-mono text-slate-400 shrink-0" id="selector-ref-hint">Ref. CC mañana: 0</span>
-                    </label>
-                    <div class="flex flex-col sm:flex-row gap-2">
-                        <select id="select-tarde-operador" class="flex-1 min-w-0 truncate bg-slate-900 border border-slate-700 rounded-xl px-3 py-2.5 text-xs sm:text-sm text-slate-100 focus:outline-none focus:border-indigo-500">
-                            <option value="">-- Selecciona tu nombre y placa --</option>
-                        </select>
-                        <button onclick="registrarIntencionTarde()" class="shrink-0 whitespace-nowrap bg-indigo-600 hover:bg-indigo-500 active:scale-[0.99] text-white font-bold text-xs sm:text-sm px-4 py-2.5 rounded-xl transition shadow-lg shadow-indigo-600/25 flex items-center justify-center gap-2">
-                            <i class="fa-solid fa-car-side"></i>
-                            <span>Voy en vehículo</span>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Queue Status Summary Header -->
-                <div class="mt-4 flex items-center justify-between text-xs text-slate-400 px-1">
-                    <span>Orden de registro de intención (2:00 PM)</span>
-                    <span id="queue-summary-text" class="font-mono text-slate-300">0 intenciones vs 0 puestos CC</span>
-                </div>
-
-                <!-- Afternoon Intentions List -->
-                <div id="afternoon-list-container" class="mt-3 space-y-2.5 max-h-[540px] overflow-y-auto pr-1">
-                    <!-- Populated via JS -->
-                </div>
-            </div>
-
-        </section>
+        </div>
     </main>
 
-    <!-- Footer -->
-    <footer class="border-t border-slate-900 py-4 px-4 sm:px-6 text-center text-xs text-slate-500">
-        ControlPark • Planificación Semanal Lun–Vie y Radar de Relevo Zona Amarilla (12 Puestos Compartidos) • v4.2026
-    </footer>
-
-    <!-- MODAL 1: Interactive Architectural Parking Map (12 Puestos Compartidos) -->
-    <div id="modal-plano" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-3xl w-full p-5 sm:p-6 shadow-2xl space-y-5 my-8">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3.5">
-                <div class="flex items-center gap-2.5">
-                    <div class="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-400 flex items-center justify-center">
-                        <i class="fa-solid fa-map"></i>
-                    </div>
-                    <div>
-                        <h3 class="text-base sm:text-lg font-bold text-white">Plano Zona Amarilla (12 Puestos Compartidos)</h3>
-                        <p class="text-xs text-slate-400">Distribución física por sectores: 7 Superior + 2 Lateral + 3 Inferior</p>
-                    </div>
-                </div>
-                <button onclick="cerrarModal('modal-plano')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <!-- Operational Norm Alert -->
-            <div class="bg-amber-500/10 border border-amber-500/30 rounded-xl p-3.5 text-xs text-amber-200 leading-relaxed flex items-start gap-3">
-                <i class="fa-solid fa-triangle-exclamation text-amber-400 text-base mt-0.5 shrink-0"></i>
-                <div class="space-y-1">
-                    <p class="font-bold text-amber-300 uppercase tracking-wide">Regla Operativa Horario Hábil (Lunes a Viernes):</p>
-                    <p>Durante los horarios hábiles de lunes a viernes, <strong>el personal en turno ÚNICAMENTE podrá utilizar los 12 parqueaderos marcados en amarillo</strong> (asignados en estricto orden de llegada entre Centro de Control, Mantenimiento, Programación y demás áreas). Los fines de semana no aplica restricción.</p>
-                </div>
-            </div>
-
-            <!-- Visual Schematic Representation -->
-            <div class="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-4">
-                <!-- Top Row -->
-                <div class="grid grid-cols-12 gap-2 items-stretch">
-                    <div class="col-span-2 bg-slate-800/80 border border-slate-700 rounded-lg p-2 flex flex-col items-center justify-center text-center">
-                        <span class="text-[10px] font-bold text-slate-400">O&M</span>
-                        <span class="text-[9px] text-slate-500">Otras áreas</span>
-                    </div>
-                    <div class="col-span-2 bg-orange-600/30 border border-orange-500/50 rounded-lg p-2 flex flex-col items-center justify-center text-center">
-                        <span class="text-[10px] font-bold text-orange-300">Adrian / Diamante</span>
-                        <span class="text-[9px] text-orange-400/80">Reservados (2)</span>
-                    </div>
-                    <div class="col-span-6 bg-amber-500/20 border-2 border-amber-400 rounded-lg p-2.5 flex flex-col items-center justify-center text-center">
-                        <span class="text-xs font-extrabold text-amber-300">SECTOR SUPERIOR: 7 CUPOS</span>
-                        <span class="text-[10px] text-amber-200/80 mt-0.5">Disponible por orden de llegada</span>
-                        <div class="grid grid-cols-7 gap-1 w-full mt-2">
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">1</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">2</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">3</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">4</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">5</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">6</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">7</span>
-                        </div>
-                    </div>
-                    <div class="col-span-2 bg-slate-800/80 border border-slate-700 rounded-lg p-2 flex flex-col items-center justify-center text-center">
-                        <i class="fa-solid fa-motorcycle text-slate-400 text-xs mb-0.5"></i>
-                        <span class="text-[10px] font-bold text-slate-300">Motos</span>
-                    </div>
-                </div>
-
-                <!-- Middle Row -->
-                <div class="grid grid-cols-12 gap-2 items-center">
-                    <div class="col-span-8 text-center py-2 border border-dashed border-slate-800 rounded-lg text-[11px] text-slate-500">
-                        Carril Central de Circulación Vehicular
-                    </div>
-                    <div class="col-span-4 bg-amber-500/20 border-2 border-amber-400 rounded-lg p-2.5 flex flex-col items-center justify-center text-center">
-                        <span class="text-xs font-extrabold text-amber-300">SECTOR LATERAL: 2 CUPOS</span>
-                        <div class="grid grid-cols-2 gap-1.5 w-full mt-1.5">
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">8</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">9</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Bottom Row -->
-                <div class="grid grid-cols-12 gap-2 items-stretch">
-                    <div class="col-span-5 bg-slate-800/80 border border-slate-700 rounded-lg p-2 flex flex-col items-center justify-center text-center">
-                        <span class="text-[10px] font-bold text-slate-400">Responsable O&M / Otras Áreas</span>
-                        <span class="text-[9px] text-slate-500">Uso exclusivo otras áreas</span>
-                    </div>
-                    <div class="col-span-5 bg-amber-500/20 border-2 border-amber-400 rounded-lg p-2.5 flex flex-col items-center justify-center text-center">
-                        <span class="text-xs font-extrabold text-amber-300">SECTOR INFERIOR: 3 CUPOS</span>
-                        <div class="grid grid-cols-3 gap-1.5 w-full mt-1.5">
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">10</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">11</span>
-                            <span class="h-4 bg-amber-400/30 border border-amber-400 rounded text-[9px] font-mono flex items-center justify-center text-amber-200">12</span>
-                        </div>
-                    </div>
-                    <div class="col-span-2 bg-slate-800/80 border border-slate-700 rounded-lg p-2 flex flex-col items-center justify-center text-center">
-                        <i class="fa-solid fa-motorcycle text-slate-400 text-xs mb-0.5"></i>
-                        <span class="text-[10px] font-bold text-slate-300">Motos</span>
-                    </div>
-                </div>
-
-                <!-- Area Color Legend -->
-                <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-2 border-t border-slate-800 text-[10px]">
-                    <div class="bg-slate-800/70 px-2 py-1.5 rounded text-slate-300 text-center">Mantenimiento y Soporte (5)</div>
-                    <div class="bg-amber-500/20 border border-amber-500/40 px-2 py-1.5 rounded text-amber-300 font-bold text-center">Zona Amarilla Compartida (12)</div>
-                    <div class="bg-emerald-500/10 px-2 py-1.5 rounded text-emerald-300 text-center">Supply Chain (3)</div>
-                    <div class="bg-blue-500/10 px-2 py-1.5 rounded text-blue-300 text-center">Calidad / Gustavo (2)</div>
-                    <div class="bg-orange-600/20 px-2 py-1.5 rounded text-orange-300 text-center">Reservado Fijo (2)</div>
-                </div>
-            </div>
-
-            <div class="flex justify-end">
-                <button onclick="cerrarModal('modal-plano')" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition">
-                    Entendido
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL 2: Add / Edit Vehicle & Plate (Directorio) -->
-    <div id="modal-vehiculo" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
-                <h3 id="modal-vehiculo-titulo" class="text-base font-bold text-white">Agregar / Editar Vehículo en Directorio</h3>
-                <button onclick="cerrarModal('modal-vehiculo')" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center">
-                    <i class="fa-solid fa-xmark"></i>
-                </button>
-            </div>
-
-            <form id="form-vehiculo" onsubmit="guardarVehiculo(event)" class="space-y-3.5">
-                <input type="hidden" id="edit-vehiculo-id">
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 mb-1">Nombre del Operador *</label>
-                    <input type="text" id="input-nombre" required placeholder="Ej: Carlos Diego Guzmán" class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Placa *</label>
-                        <input type="text" id="input-placa" required placeholder="Ej: JNT902" class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm font-mono uppercase text-white focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Combustible</label>
-                        <select id="input-combustible" class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
-                            <option value="Gasolina">Gasolina</option>
-                            <option value="Hybrid">Hybrid</option>
-                            <option value="Eléctrico">Eléctrico</option>
-                            <option value="Diésel">Diésel</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Marca / Modelo</label>
-                        <input type="text" id="input-vehiculo" placeholder="Ej: Mazda CX 30" class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 mb-1">Color</label>
-                        <input type="text" id="input-color" placeholder="Ej: Rojo" class="w-full bg-slate-950 border border-slate-700 focus:border-indigo-500 rounded-xl px-3 py-2 text-sm text-white focus:outline-none">
-                    </div>
-    <!-- MODAL 3: Confirm Reset Day or Week -->
-    <div id="modal-reiniciar" class="fixed inset-0 z-50 hidden bg-slate-950/85 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-slate-900 border border-slate-700 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
-            <div class="flex items-center gap-3">
-                <div class="w-10 h-10 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center shrink-0">
-                    <i class="fa-solid fa-rotate-right text-lg"></i>
-                </div>
-                <div>
-                    <h3 class="text-base font-bold text-white">Reiniciar registros</h3>
-                    <p class="text-xs text-slate-400 mt-0.5">Elige si deseas limpiar únicamente el día seleccionado o reiniciar toda la semana (Lunes a Viernes).</p>
-                </div>
-            </div>
-            <div class="flex flex-col sm:flex-row justify-end gap-2 pt-2">
-                <button onclick="cerrarModal('modal-reiniciar')" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold">Cancelar</button>
-                <button onclick="limpiarDiaActual(); cerrarModal('modal-reiniciar');" class="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold">Limpiar solo día actual</button>
-                <button onclick="reiniciarTodaLaSemana(); cerrarModal('modal-reiniciar');" class="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-500 text-white text-xs font-bold">Reiniciar toda la semana</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- APPLICATION LOGIC -->
+    <!-- Script con los datos reales del Excel y lógica de la App -->
     <script>
-        // --- 1. STORAGE KEY & CONSTANTS (BRAND NEW v4_2026) ---
-        const STORAGE_KEY = 'controlpark_cc_semanal_v4_2026';
-        const TOTAL_ZONA_AMARILLA = 12; // 7 + 2 + 3 shared slots
-        const OPCIONES_HORA_SALIDA = ['13:00', '13:30', '14:00'];
-        const DIAS_HABILES = [
-            { key: 'lunes', label: 'Lunes', short: 'LUN' },
-            { key: 'martes', label: 'Martes', short: 'MAR' },
-            { key: 'miercoles', label: 'Miércoles', short: 'MIÉ' },
-            { key: 'jueves', label: 'Jueves', short: 'JUE' },
-            { key: 'viernes', label: 'Viernes', short: 'VIE' }
+        // Base de datos precargada con los 39 operadores de la lista oficial CC MT - BT
+        const operadoresData = [
+            { id: "1", nombre: "Diego Flechas", vehiculo: "Chevrolet Spark GT (Gris)", placa: "UBK915" },
+            { id: "2", nombre: "Julian Cadavid", vehiculo: "Seat Leon (Azul Mediterraneo)", placa: "GLT634" },
+            { id: "3", nombre: "Ferney Blanco", vehiculo: "Volkswagen Jetta (Rojo)", placa: "RDK766" },
+            { id: "4", nombre: "Fabio Velasquez", vehiculo: "Renault Logan (Rojo)", placa: "RZU577" },
+            { id: "5", nombre: "Nestor Garcia", vehiculo: "Chevrolet Sonic (Plateado)", placa: "DQQ138" },
+            { id: "6", nombre: "Arnol Chavez", vehiculo: "Volkswagen Bora (Gris)", placa: "DAI751" },
+            { id: "7", nombre: "Arnol Chavez", vehiculo: "Chevrolet Aveo (Verde Sombra)", placa: "DCM930" },
+            { id: "8", nombre: "Julio Pachon", vehiculo: "KIA Rio (Negro)", placa: "RIZ-879" },
+            { id: "9", nombre: "Julio Pachon", vehiculo: "Mercedes Benz Gla 200 (Gris)", placa: "MU-224" },
+            { id: "10", nombre: "Yeison Toro", vehiculo: "Peugeot (Rojo)", placa: "FSQ467" },
+            { id: "11", nombre: "Yecid Beltran", vehiculo: "Chevrolet Sonic (Blanco)", placa: "DJV394" },
+            { id: "12", nombre: "Deyvid Castillo", vehiculo: "Volkswagen Gol (Plata Sirius)", placa: "DQP986" },
+            { id: "13", nombre: "Sebastian Rodas", vehiculo: "Volkswagen Voyage (Blanco)", placa: "DMW327" },
+            { id: "14", nombre: "Edwin Sanchez", vehiculo: "Ford Focus (Rojo)", placa: "NCX 538" },
+            { id: "15", nombre: "Jhon Jairo Guevara", vehiculo: "Renault Duster (Verde Militar)", placa: "URT036" },
+            { id: "16", nombre: "Pablo Muñoz", vehiculo: "KIA Sportage (Plata)", placa: "RHY 308" },
+            { id: "17", nombre: "Leonardo Sanchez", vehiculo: "MAZDA 3 (Gris)", placa: "ELP 168" },
+            { id: "18", nombre: "Nestor Lozano", vehiculo: "Chevrolet Optra (Azul)", placa: "DCE797" },
+            { id: "19", nombre: "Martin Ibañez", vehiculo: "Honda Civic (Azul)", placa: "BDB060" },
+            { id: "20", nombre: "Jhon Esquivel", vehiculo: "Chevrolet Sonic (Blanco)", placa: "HSS819" },
+            { id: "21", nombre: "Miguel Bravo", vehiculo: "Renault Logan (Rojo)", placa: "UUN411" },
+            { id: "22", nombre: "German Figueroa", vehiculo: "Renault Logan (Rojo)", placa: "HCK572" },
+            { id: "23", nombre: "German Figueroa", vehiculo: "Renault Clio (Gris)", placa: "IJV727" },
+            { id: "24", nombre: "Oscar Bulla", vehiculo: "Peugeot 208 (Gris)", placa: "EMT763" },
+            { id: "25", nombre: "Carlos Diego Guzmán", vehiculo: "MAZDA CX30 (ROJO)", placa: "JNT902" },
+            { id: "26", nombre: "Daniel Hernandez", vehiculo: "MAZDA CX5 (ROJO)", placa: "MPN756" },
+            { id: "27", nombre: "Edgar Dominguez", vehiculo: "Suzuki Ertiga (Plata)", placa: "URX729" },
+            { id: "28", nombre: "Fredy Bohorquez", vehiculo: "Nissan Frontier (Rojo)", placa: "URV390" },
+            { id: "29", nombre: "Manuel Abril", vehiculo: "Nissan XtraIL (Gris)", placa: "IJL520" },
+            { id: "30", nombre: "Giovanni Suarez", vehiculo: "Chevrolet Sonic (Rojo)", placa: "ZYS744" },
+            { id: "31", nombre: "Lina Peña", vehiculo: "Mazda 3 (Rojo)", placa: "FVS902" },
+            { id: "32", nombre: "Darvis Cardona", vehiculo: "KIA Cerato 2000 (Blanco)", placa: "REW409" },
+            { id: "33", nombre: "Luis Montaño", vehiculo: "Pulsar 200ns (Rojo)", placa: "DYO65D" },
+            { id: "34", nombre: "Pilar Viasus", vehiculo: "Renault Captur (Rojo)", placa: "DMW798" },
+            { id: "35", nombre: "José Ricardo Parra", vehiculo: "FIAT 1 Way", placa: "FIZ978" },
+            { id: "36", nombre: "Óscar Valderrama", vehiculo: "Ford Ecosport", placa: "GMU862" },
+            { id: "37", nombre: "Diego Granados", vehiculo: "Ford Fiesta (Plata)", placa: "ZYS867" },
+            { id: "38", nombre: "Edwin Cuenca", vehiculo: "KIA Picanto (Negro)", placa: "HKQ008" },
+            { id: "39", nombre: "Edwin Cuenca", vehiculo: "Renault Twingo (Vinotinto)", placa: "DCU457" }
         ];
 
-        // --- 2. EXACT 41 VEHICLES FROM EXCEL DIRECTORY ---
-        // --- 3. STATE MANAGEMENT (MON–FRI INDEPENDENT DAYS) ---
-        // dias[key]: { mañanaVehiculos: [{ id, horaIngreso, horaSalidaEstimada: '13:00'|'13:30'|'14:00', salio: boolean, horaSalidaReal: string|null }], tardeIntenciones: [{ id, horaRegistro }] }
-        let estadoApp = {
-            operadores: [],
-            dias: {
-                lunes: { mañanaVehiculos: [], tardeIntenciones: [] },
-                martes: { mañanaVehiculos: [], tardeIntenciones: [] },
-                miercoles: { mañanaVehiculos: [], tardeIntenciones: [] },
-                jueves: { mañanaVehiculos: [], tardeIntenciones: [] },
-                viernes: { mañanaVehiculos: [], tardeIntenciones: [] }
-            }
+        // Estado de la app (guardado en localStorage)
+        let estadoApp = JSON.parse(localStorage.getItem('controlpark_v2_state')) || {
+            mañanaEnCarro: ["1", "3", "25", "15"], // Por defecto algunos simulados (incluyendo a Carlos Diego)
+            mañanaSalieron: ["1"], // Quienes ya salieron y liberaron puesto
+            tardeSolicitantes: [
+                { id: "t1", nombre: "Julian Cadavid", hora: "1:50 PM" },
+                { id: "t2", nombre: "Daniel Hernandez", hora: "1:55 PM" }
+            ]
         };
-
-        let diaSeleccionado = 'lunes';
-        let soloEnVehiculoFiltro = false;
-
-        function detectarDiaBogota() {
-            const ahora = new Date();
-            const weekdayStr = ahora.toLocaleDateString('en-US', {
-                timeZone: 'America/Bogota',
-                weekday: 'short'
-            }).toLowerCase();
-
-            const mapa = {
-                mon: { key: 'lunes', esFinDeSemana: false },
-                tue: { key: 'martes', esFinDeSemana: false },
-                wed: { key: 'miercoles', esFinDeSemana: false },
-                thu: { key: 'jueves', esFinDeSemana: false },
-                fri: { key: 'viernes', esFinDeSemana: false },
-                sat: { key: 'lunes', esFinDeSemana: true },
-                sun: { key: 'lunes', esFinDeSemana: true }
-            };
-
-            return mapa[weekdayStr] || { key: 'lunes', esFinDeSemana: false };
-        }
-
-        /*function crearEscenarioDemoInicial(diaActivoKey) {
-            const diasVacios = {
-                lunes: { mañanaVehiculos: [], tardeIntenciones: [] },
-                martes: { mañanaVehiculos: [], tardeIntenciones: [] },
-                miercoles: { mañanaVehiculos: [], tardeIntenciones: [] },
-                jueves: { mañanaVehiculos: [], tardeIntenciones: [] },
-                viernes: { mañanaVehiculos: [], tardeIntenciones: [] }
-            };*/
-
-            // Populate realistic demo data on the active weekday
-            diasVacios[diaActivoKey] = {
-                mañanaVehiculos: [
-                    { id: "op-1", horaIngreso: "05:45", horaSalidaEstimada: "13:00", salio: true, horaSalidaReal: "13:02" },
-                    { id: "op-9", horaIngreso: "05:50", horaSalidaEstimada: "13:30", salio: false, horaSalidaReal: null },
-                    { id: "op-2", horaIngreso: "05:53", horaSalidaEstimada: "13:30", salio: false, horaSalidaReal: null },
-                    { id: "op-11", horaIngreso: "05:56", horaSalidaEstimada: "14:00", salio: false, horaSalidaReal: null },
-                    { id: "op-20", horaIngreso: "05:58", horaSalidaEstimada: "14:00", salio: false, horaSalidaReal: null }
-                ],
-                tardeIntenciones: [
-                    { id: "op-21", horaRegistro: "12:15" },
-                    { id: "op-26", horaRegistro: "12:30" },
-                    { id: "op-32", horaRegistro: "12:42" }
-                ]
-            };
-
-            return {
-                operadores: JSON.parse(JSON.stringify(DIRECTORIO_INICIAL)),
-                dias: diasVacios
-            };
-        }
-
-        function obtenerDatosDiaActual() {
-            if (!estadoApp.dias[diaSeleccionado]) {
-                estadoApp.dias[diaSeleccionado] = { mañanaVehiculos: [], tardeIntenciones: [] };
-            }
-            return estadoApp.dias[diaSeleccionado];
-        }
-
-        function inicializarEstado() {
-            const infoHoy = detectarDiaBogota();
-            diaSeleccionado = infoHoy.key;
-
-            const weekendBanner = document.getElementById('weekend-banner');
-            if (infoHoy.esFinDeSemana && weekendBanner) {
-                weekendBanner.classList.remove('hidden');
-            }
-
-            try {
-                const guardado = localStorage.getItem(STORAGE_KEY);
-                if (guardado) {
-                    const parsed = JSON.parse(guardado);
-                    estadoApp.operadores = Array.isArray(parsed.operadores) && parsed.operadores.length > 0
-                        ? parsed.operadores
-                        : JSON.parse(JSON.stringify(DIRECTORIO_INICIAL));
-
-                    DIAS_HABILES.forEach(d => {
-                        const diaGuardado = parsed.dias && parsed.dias[d.key] ? parsed.dias[d.key] : {};
-                        estadoApp.dias[d.key] = {
-                            mañanaVehiculos: Array.isArray(diaGuardado.mañanaVehiculos)
-                                ? diaGuardado.mañanaVehiculos.map(v => ({
-                                    ...v,
-                                    horaSalidaEstimada: OPCIONES_HORA_SALIDA.includes(v.horaSalidaEstimada) ? v.horaSalidaEstimada : '14:00'
-                                }))
-                                : [],
-                            tardeIntenciones: Array.isArray(diaGuardado.tardeIntenciones) ? diaGuardado.tardeIntenciones : []
-                        };
-                    });
-
-                    else {
-
-    estadoApp = {
-
-        operadores: JSON.parse(
-            JSON.stringify(DIRECTORIO_INICIAL)
-        ),
-
-        dias: {
-            lunes:{mañanaVehiculos:[],tardeIntenciones:[]},
-            martes:{mañanaVehiculos:[],tardeIntenciones:[]},
-            miercoles:{mañanaVehiculos:[],tardeIntenciones:[]},
-            jueves:{mañanaVehiculos:[],tardeIntenciones:[]},
-            viernes:{mañanaVehiculos:[],tardeIntenciones:[]}
-        }
-
-    };
-
-    guardarEstado();
-}
-   ----------------------------
-
-       atch (e) {
-
-    console.error("Error leyendo estado local:", e);
-
-    estadoApp = {
-
-        operadores: JSON.parse(
-            JSON.stringify(DIRECTORIO_INICIAL)
-        ),
-
-        dias: {
-            lunes:{mañanaVehiculos:[],tardeIntenciones:[]},
-            martes:{mañanaVehiculos:[],tardeIntenciones:[]},
-            miercoles:{mañanaVehiculos:[],tardeIntenciones:[]},
-            jueves:{mañanaVehiculos:[],tardeIntenciones:[]},
-            viernes:{mañanaVehiculos:[],tardeIntenciones:[]}
-        }
-    };
-}
-       
 
         function guardarEstado() {
-            try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(estadoApp));
-            } catch (e) {
-                console.error("Error guardando estado:", e);
+            localStorage.setItem('controlpark_v2_state', JSON.stringify(estadoApp));
+            renderizarApp();
+        }
+
+        function resetData() {
+            if(confirm("¿Deseas reiniciar los estados del día?")) {
+                estadoApp = { mañanaEnCarro: ["25"], mañanaSalieron: [], tardeSolicitantes: [] };
+                guardarEstado();
             }
         }
 
-        function seleccionarDiaSemana(dayKey) {
-            if (!DIAS_HABILES.some(d => d.key === dayKey)) return;
-            diaSeleccionado = dayKey;
-            renderizarTodo();
-        }
-
-        // --- 4. CORE RELAY & DEMAND LOGIC ---
-        function calcularPanoramaRelevo() {
-            const datosDia = obtenerDatosDiaActual();
-            const totalMananaCC = datosDia.mañanaVehiculos.length;
-            const salieronManana = datosDia.mañanaVehiculos.filter(v => v.salio).length;
-            const parqueadosAunManana = Math.max(0, totalMananaCC - salieronManana);
-            const totalIntencionesTarde = datosDia.tardeIntenciones.length;
-            const balanceRelevo = totalMananaCC - totalIntencionesTarde;
-
-            const salidas1300 = datosDia.mañanaVehiculos.filter(v => v.horaSalidaEstimada === '13:00').length;
-            const salidas1330 = datosDia.mañanaVehiculos.filter(v => v.horaSalidaEstimada === '13:30').length;
-            const salidas1400 = datosDia.mañanaVehiculos.filter(v => v.horaSalidaEstimada === '14:00').length;
-
-            return {
-                totalMananaCC,
-                salieronManana,
-                parqueadosAunManana,
-                totalIntencionesTarde,
-                balanceRelevo,
-                salidas1300,
-                salidas1330,
-                salidas1400
-            };
-        }
-
-        // --- 5. LIVE CLOCK & COLOMBIA SHIFT DETECTION ---
-        function obtenerHoraBogotaHHMM() {
-            return new Date().toLocaleTimeString('es-CO', {
-                timeZone: 'America/Bogota',
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: false
-            });
-        }
-
-        function actualizarReloj() {
-            const ahora = new Date();
-            const opcionesFecha = {
-                timeZone: 'America/Bogota',
-                weekday: 'long',
-                day: 'numeric',
-                month: 'long',
-                year: 'numeric'
-            };
-            const opcionesHora = {
-                timeZone: 'America/Bogota',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: false
-            };
-
-            const fechaTexto = ahora.toLocaleDateString('es-CO', opcionesFecha);
-            const horaTexto = ahora.toLocaleTimeString('es-CO', opcionesHora);
-            const horaNum = parseInt(horaTexto.split(':')[0], 10);
-            const infoHoy = detectarDiaBogota();
-
-            document.getElementById('live-date').textContent = fechaTexto.charAt(0).toUpperCase() + fechaTexto.slice(1);
-            document.getElementById('live-clock').textContent = horaTexto;
-
-            const badge = document.getElementById('active-shift-badge');
-            if (infoHoy.esFinDeSemana) {
-                badge.textContent = 'Fin de semana (No aplica restricción)';
-                badge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-cyan-500/15 text-cyan-300 border border-cyan-500/30';
-            } else if (horaNum >= 6 && horaNum < 14) {
-                badge.textContent = 'Turno Mañana (06:00 - 14:00)';
-                badge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30';
-            } else if (horaNum >= 14 && horaNum < 22) {
-                badge.textContent = 'Turno Tarde (14:00 - 22:00)';
-                badge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-indigo-500/15 text-indigo-300 border border-indigo-500/30';
+        function toggleTurnoMañana(id) {
+            const index = estadoApp.mañanaEnCarro.indexOf(id);
+            if(index > -1) {
+                // Quitar de en carro
+                estadoApp.mañanaEnCarro.splice(index, 1);
+                // Si estaba marcado como salido, quitarlo también
+                estadoApp.mañanaSalieron = estadoApp.mañanaSalieron.filter(item => item !== id);
             } else {
-                badge.textContent = 'Turno Noche (No ocupar Zona Amarilla < 6AM)';
-                badge.className = 'px-2 py-0.5 rounded-md text-[11px] font-semibold bg-slate-800 text-slate-300 border border-slate-700';
+                // Poner en carro
+                estadoApp.mañanaEnCarro.push(id);
             }
-        }
-
-        // --- 6. MORNING SHIFT ACTIONS (WITH MANDATORY 13:00 / 13:30 / 14:00 EXIT HOUR) ---
-        function registrarIngresoManana(id, horaSalidaElegida = null) {
-            const datosDia = obtenerDatosDiaActual();
-            const op = estadoApp.operadores.find(o => o.id === id);
-            if (!op) return;
-
-            if (datosDia.mañanaVehiculos.some(v => v.id === id)) {
-                mostrarToast(`${op.nombre} ya está registrado en el Turno Mañana de este día.`, 'warning');
-                return;
-            }
-
-            const selectorHora = document.getElementById('select-manana-hora-salida');
-            const horaSalidaFinal = OPCIONES_HORA_SALIDA.includes(horaSalidaElegida)
-                ? horaSalidaElegida
-                : (selectorHora && OPCIONES_HORA_SALIDA.includes(selectorHora.value) ? selectorHora.value : '14:00');
-
-            if (datosDia.mañanaVehiculos.length >= TOTAL_ZONA_AMARILLA) {
-                mostrarToast('Aviso: Ya hay 12 vehículos registrados (tope físico total de Zona Amarilla).', 'warning');
-            }
-
-            const horaIngreso = obtenerHoraBogotaHHMM();
-            datosDia.mañanaVehiculos.push({
-                id,
-                horaIngreso,
-                horaSalidaEstimada: horaSalidaFinal,
-                salio: false,
-                horaSalidaReal: null
-            });
-
-            const diaLabel = DIAS_HABILES.find(d => d.key === diaSeleccionado)?.label || '';
-            mostrarToast(`${diaLabel}: ${op.nombre} (${op.placa}) registrado • Salida estimada ${horaSalidaFinal}`, 'info');
             guardarEstado();
-            renderizarTodo();
         }
 
-        function registrarIngresoMananaDesdeSelector() {
-            const selectOp = document.getElementById('select-manana-operador');
-            const selectHora = document.getElementById('select-manana-hora-salida');
-            const id = selectOp.value;
-
-            if (!id) {
-                mostrarToast('Selecciona primero el operador que ingresa en vehículo.', 'warning');
-                return;
-            }
-
-            const horaSalida = selectHora.value;
-            if (!OPCIONES_HORA_SALIDA.includes(horaSalida)) {
-                mostrarToast('Debes elegir una hora estimada de salida: 13:00, 13:30 o 14:00.', 'warning');
-                return;
-            }
-
-            registrarIngresoManana(id, horaSalida);
-            selectOp.value = '';
-        }
-
-        function actualizarHoraSalidaEstimadaManana(id, nuevaHora) {
-            if (!OPCIONES_HORA_SALIDA.includes(nuevaHora)) return;
-            const datosDia = obtenerDatosDiaActual();
-            const reg = datosDia.mañanaVehiculos.find(v => v.id === id);
-            const op = estadoApp.operadores.find(o => o.id === id);
-            if (!reg || !op) return;
-
-            reg.horaSalidaEstimada = nuevaHora;
-            mostrarToast(`Hora estimada actualizada: ${op.nombre} sale a las ${nuevaHora}`, 'info');
-            guardarEstado();
-            renderizarTodo();
-        }
-
-        function marcarSalidaManana(id) {
-            const datosDia = obtenerDatosDiaActual();
-            const reg = datosDia.mañanaVehiculos.find(v => v.id === id);
-            const op = estadoApp.operadores.find(o => o.id === id);
-            if (!reg || !op) return;
-
-            const hora = obtenerHoraBogotaHHMM();
-            reg.salio = true;
-            reg.horaSalidaReal = hora;
-
-            mostrarToast(`✓ ${op.nombre} marcó salida (${hora}). Puesto liberado en Zona Amarilla.`, 'success');
-            guardarEstado();
-            renderizarTodo();
-        }
-
-        function deshacerSalidaManana(id) {
-            const datosDia = obtenerDatosDiaActual();
-            const reg = datosDia.mañanaVehiculos.find(v => v.id === id);
-            const op = estadoApp.operadores.find(o => o.id === id);
-            if (!reg || !op) return;
-
-            reg.salio = false;
-            reg.horaSalidaReal = null;
-
-            mostrarToast(`Salida revertida para ${op.nombre}`, 'info');
-            guardarEstado();
-            renderizarTodo();
-        }
-
-        function quitarRegistroManana(id) {
-            const datosDia = obtenerDatosDiaActual();
-            const op = estadoApp.operadores.find(o => o.id === id);
-            datosDia.mañanaVehiculos = datosDia.mañanaVehiculos.filter(v => v.id !== id);
-            mostrarToast(`Registro removido: ${op ? op.nombre : 'Operador'}`, 'neutral');
-            guardarEstado();
-            renderizarTodo();
-        }
-
-        function toggleFiltroSoloVehiculo() {
-            soloEnVehiculoFiltro = !soloEnVehiculoFiltro;
-            const btn = document.getElementById('btn-filtro-vehiculo');
-            if (soloEnVehiculoFiltro) {
-                btn.className = 'px-3 py-2 rounded-xl bg-indigo-600 text-white border border-indigo-500 text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0';
+        function toggleSalidaMañana(id) {
+            const index = estadoApp.mañanaSalieron.indexOf(id);
+            if(index > -1) {
+                estadoApp.mañanaSalieron.splice(index, 1);
             } else {
-                btn.className = 'px-3 py-2 rounded-xl bg-slate-950 hover:bg-slate-800 text-slate-300 border border-slate-800 text-xs font-semibold transition flex items-center justify-center gap-1.5 shrink-0';
+                if(!estadoApp.mañanaEnCarro.includes(id)) {
+                    estadoApp.mañanaEnCarro.push(id);
+                }
+                estadoApp.mañanaSalieron.push(id);
             }
-            renderizarListaManana();
+            guardarEstado();
         }
 
-        // --- 7. AFTERNOON INTENTION ACTIONS ---
-        function registrarIntencionTarde() {
-            const datosDia = obtenerDatosDiaActual();
+        function solicitarCupoTarde() {
             const select = document.getElementById('select-tarde-operador');
-            const id = select.value;
-            if (!id) {
-                mostrarToast('Selecciona tu nombre y placa en el desplegable.', 'warning');
-                return;
+            const nombreSeleccionado = select.value;
+            if(!nombreSeleccionado) return alert("Selecciona un operador del turno tarde.");
+
+            // Verificar si ya está en la lista
+            if(estadoApp.tardeSolicitantes.some(s => s.nombre === nombreSeleccionado)) {
+                return alert("Este operador ya solicitó cupo para la tarde.");
             }
 
-            if (datosDia.tardeIntenciones.some(s => s.id === id)) {
-                mostrarToast('Ya tienes una intención registrada para el Turno Tarde en este día.', 'warning');
-                return;
-            }
-
-            const hora = obtenerHoraBogotaHHMM();
-            datosDia.tardeIntenciones.push({ id, horaRegistro: hora });
-            select.value = '';
-
-            const op = estadoApp.operadores.find(o => o.id === id);
-            const pos = datosDia.tardeIntenciones.length;
-            const totalManana = datosDia.mañanaVehiculos.length;
-            const diaLabel = DIAS_HABILES.find(d => d.key === diaSeleccionado)?.label || '';
-
-            if (pos <= totalManana) {
-                mostrarToast(`${diaLabel} • Intención #${pos} (${hora}): ${op ? op.nombre : ''} entra en referencia de relevo CC.`, 'success');
-            } else {
-                mostrarToast(`${diaLabel} • Intención #${pos} (${hora}): Supera los ${totalManana} carros de mañana CC. Llegar temprano.`, 'warning');
-            }
-
-            guardarEstado();
-            renderizarTodo();
-        }
-
-        function cancelarIntencionTarde(id) {
-            const datosDia = obtenerDatosDiaActual();
-            const op = estadoApp.operadores.find(o => o.id === id);
-            datosDia.tardeIntenciones = datosDia.tardeIntenciones.filter(s => s.id !== id);
-            mostrarToast(`Intención cancelada: ${op ? op.nombre : 'Operador'}`, 'neutral');
-            guardarEstado();
-            renderizarTodo();
-        }
-
-        function limpiarDiaActual() {
-            estadoApp.dias[diaSeleccionado] = { mañanaVehiculos: [], tardeIntenciones: [] };
-            const diaLabel = DIAS_HABILES.find(d => d.key === diaSeleccionado)?.label || '';
-            guardarEstado();
-            renderizarTodo();
-            mostrarToast(`${diaLabel} limpio: 0 vehículos en mañana y 0 intenciones en tarde.`, 'info');
-        }
-
-        function reiniciarTodaLaSemana() {
-            DIAS_HABILES.forEach(d => {
-                estadoApp.dias[d.key] = { mañanaVehiculos: [], tardeIntenciones: [] };
+            const horaActual = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            estadoApp.tardeSolicitantes.push({
+                id: 't_' + Date.now(),
+                nombre: nombreSeleccionado,
+                hora: horaActual
             });
+            select.value = "";
             guardarEstado();
-            renderizarTodo();
-            mostrarToast('Toda la semana (Lunes a Viernes) fue reiniciada en cero.', 'info');
         }
 
-        // --- 8. RENDERING FUNCTIONS ---
-        function renderizarSelectorDiasSemana() {
-            const container = document.getElementById('weekday-tabs-container');
-            const infoHoy = detectarDiaBogota();
-            const diaActualObj = DIAS_HABILES.find(d => d.key === diaSeleccionado) || DIAS_HABILES[0];
+        function quitarSolicitanteTarde(id) {
+            estadoApp.tardeSolicitantes = estadoApp.tardeSolicitantes.filter(s => s.id !== id);
+            guardarEstado();
+        }
 
-            document.getElementById('selected-day-pill').textContent = `Viendo: ${diaActualObj.label}`;
-            document.getElementById('radar-section-title').textContent = `Radar de Relevo — Puestos en Juego (${diaActualObj.label})`;
-            document.getElementById('morning-col-title').innerHTML = `Turno Mañana • ${diaActualObj.label} <span class="text-xs font-mono font-normal text-slate-400">(06:00 - 14:00)</span>`;
-            document.getElementById('afternoon-col-title').innerHTML = `Turno Tarde • ${diaActualObj.label} <span class="text-xs font-mono font-normal text-slate-400">(Entrada 14:00)</span>`;
+        function filtrarOperadores() {
+            renderizarApp();
+        }
 
-            container.innerHTML = DIAS_HABILES.map(dia => {
-                const datos = estadoApp.dias[dia.key] || { mañanaVehiculos: [], tardeIntenciones: [] };
-                const cntAM = datos.mañanaVehiculos.length;
-                const cntPM = datos.tardeIntenciones.length;
-                const isSelected = dia.key === diaSeleccionado;
-                const isToday = !infoHoy.esFinDeSemana && infoHoy.key === dia.key;
+        function renderizarApp() {
+            const filtro = document.getElementById('search-operador').value.toLowerCase();
+            const containerMañana = document.getElementById('lista-operadores-container');
+            const containerTarde = document.getElementById('lista-tarde-container');
+            const selectTarde = document.getElementById('select-tarde-operador');
 
-                const baseClasses = isSelected
-                    ? 'bg-indigo-600/25 border-indigo-400 text-white shadow-lg shadow-indigo-500/10'
-                    : 'bg-slate-950/80 border-slate-800 hover:border-slate-700 text-slate-300';
+            containerMañana.innerHTML = '';
+            containerTarde.innerHTML = '';
 
-                const hoyBadge = isToday
-                    ? `<span class="px-1.5 py-0.2 rounded bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[9px] font-extrabold uppercase">HOY</span>`
-                    : '';
+            // Llenar selector de tarde
+            const valorActualSelect = selectTarde.value;
+            selectTarde.innerHTML = '<option value="">-- Selecciona operador --</option>';
+            operadoresData.forEach(op => {
+                const opt = document.createElement('option');
+                opt.value = op.nombre;
+                opt.textContent = `${op.nombre} - ${op.vehiculo} [${op.placa}]`;
+                selectTarde.appendChild(opt);
+            });
+            selectTarde.value = valorActualSelect;
 
-                return `
-                    <button onclick="seleccionarDiaSemana('${dia.key}')" class="p-2.5 rounded-xl border ${baseClasses} text-left transition flex flex-col justify-between gap-1.5">
-                        <div class="flex items-center justify-between gap-1">
-                            <span class="font-bold text-xs sm:text-sm">${dia.label}</span>
-                            ${hoyBadge}
+            let filtrados = operadoresData.filter(op => 
+                op.nombre.toLowerCase().includes(filtro) || op.placa.toLowerCase().includes(filtro) || op.vehiculo.toLowerCase().includes(filtro)
+            );
+
+            // Renderizar Turno Mañana
+            filtrados.forEach(op => {
+                const enCarro = estadoApp.mañanaEnCarro.includes(op.id);
+                const yaSalio = estadoApp.mañanaSalieron.includes(op.id);
+
+                const card = document.createElement('div');
+                card.className = `p-3 rounded-xl border transition flex items-center justify-between gap-2 ${enCarro ? (yaSalio ? 'bg-emerald-950/20 border-emerald-500/30' : 'bg-slate-900 border-blue-500/40') : 'bg-slate-950/40 border-slate-800/80'}`;
+                
+                card.innerHTML = `
+                    <div class="flex items-center gap-3 min-w-0">
+                        <button onclick="toggleTurnoMañana('${op.id}')" class="w-7 h-7 rounded-lg flex items-center justify-center border transition ${enCarro ? 'bg-blue-600 border-blue-500 text-white' : 'bg-slate-900 border-slate-700 text-slate-600 hover:border-slate-500'}">
+                            <i class="fa-solid fa-car text-xs"></i>
+                        </button>
+                        <div class="min-w-0">
+                            <h4 class="text-xs font-bold text-slate-200 truncate">${op.nombre}</h4>
+                            <p class="text-[11px] text-slate-400 truncate">${op.vehiculo} • <span class="text-blue-400 font-mono font-semibold">${op.placa}</span></p>
                         </div>
-                        <div class="flex items-center gap-1.5 text-[11px] font-mono">
-                            <span class="px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300">${cntAM} AM</span>
-                            <span class="text-slate-600">•</span>
-                            <span class="px-1.5 py-0.5 rounded bg-indigo-500/15 text-indigo-300">${cntPM} PM</span>
-                        </div>
-                    </button>
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        ${enCarro ? `
+                            <button onclick="toggleSalidaMañana('${op.id}')" class="text-[11px] px-2.5 py-1 rounded-lg border font-medium transition ${yaSalio ? 'bg-emerald-600 border-emerald-500 text-white shadow-md shadow-emerald-600/20' : 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'}">
+                                ${yaSalio ? '<i class="fa-solid fa-check mr-1"></i> Ya salí' : 'Marcar Salida'}
+                            </button>
+                        ` : '<span class="text-[10px] text-slate-500 px-2 py-0.5">Sin carro hoy</span>'}
+                    </div>
                 `;
-            }).join('');
-        }
+                containerMañana.appendChild(card);
+            });
 
-        function renderizarBannerRadar() {
-            const pan = calcularPanoramaRelevo();
-            const diaLabel = DIAS_HABILES.find(d => d.key === diaSeleccionado)?.label || 'Día';
-            const banner = document.getElementById('status-banner');
-            const iconBox = document.getElementById('banner-icon-box');
-            const icon = document.getElementById('banner-icon');
-            const pill = document.getElementById('banner-pill');
-            const title = document.getElementById('banner-title');
-            const subtitle = document.getElementById('banner-subtitle');
-            const breakdown = document.getElementById('banner-breakdown');
+            // Contadores y Semaforo
+            const totalEnCarro = estadoApp.mañanaEnCarro.length;
+            const totalSalieron = estadoApp.mañanaSalieron.length;
+            const totalSolicitantes = estadoApp.tardeSolicitantes.length;
 
-            breakdown.textContent = `${diaLabel}: ${pan.totalMananaCC} CC mañana (${pan.parqueadosAunManana} parqueados • ${pan.salieronManana} salieron) vs. ${pan.totalIntencionesTarde} intenciones tarde`;
+            document.getElementById('badge-total-mañana').textContent = `${totalEnCarro} en carro`;
+            document.getElementById('badge-total-tarde').textContent = `${totalSolicitantes} solicitantes`;
+            document.getElementById('stat-mañana-salen').textContent = totalSalieron;
 
-            if (pan.totalMananaCC === 0) {
-                banner.className = 'rounded-2xl border p-4 sm:p-5 transition-all duration-300 bg-slate-900/90 border-slate-700';
-                iconBox.className = 'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-slate-800 text-slate-300 border border-slate-700 mt-0.5';
-                icon.className = 'fa-solid fa-compass text-xl';
-                pill.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-slate-800 text-slate-300 border border-slate-700';
-                pill.textContent = `${diaLabel.toUpperCase()} • SIN VEHÍCULOS CC EN MAÑANA`;
-                title.textContent = `Sin vehículos CC registrados el ${diaLabel} en mañana — Los 12 puestos de Zona Amarilla dependen 100% de disponibilidad libre por orden de llegada.`;
-                subtitle.textContent = `Hay ${pan.totalIntencionesTarde} intención(es) reportada(s) para las 2:00 PM. Al no haber relevo directo del CC, se debe llegar temprano.`;
-            } else if (pan.totalIntencionesTarde < pan.totalMananaCC) {
-                banner.className = 'rounded-2xl border p-4 sm:p-5 transition-all duration-300 bg-emerald-950/30 border-emerald-500/40';
-                iconBox.className = 'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mt-0.5';
-                icon.className = 'fa-solid fa-circle-check text-xl';
-                pill.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
-                pill.textContent = `${diaLabel.toUpperCase()} • PANORAMA FAVORABLE (+${pan.balanceRelevo} REF. CC)`;
-                title.textContent = `Panorama favorable el ${diaLabel} — ${pan.totalMananaCC} vehículos CC en mañana (Salidas est.: ${pan.salidas1300} a las 13:00, ${pan.salidas1330} a las 13:30, ${pan.salidas1400} a las 14:00) frente a ${pan.totalIntencionesTarde} en la tarde.`;
-                subtitle.textContent = 'Recuerda: asignación física en estricto orden de llegada (sin reserva). Si alguien de otra área llega antes al puesto liberado, puede ocuparlo.';
-            } else if (pan.totalIntencionesTarde === pan.totalMananaCC) {
-                banner.className = 'rounded-2xl border p-4 sm:p-5 transition-all duration-300 bg-amber-950/30 border-amber-500/45';
-                iconBox.className = 'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-amber-500/20 text-amber-400 border border-amber-500/30 mt-0.5';
-                icon.className = 'fa-solid fa-triangle-exclamation text-xl animate-pulse-subtle';
-                pill.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/30';
-                pill.textContent = `${diaLabel.toUpperCase()} • RELEVO A TOPE DE REFERENCIA`;
-                title.textContent = `Relevo a tope el ${diaLabel} — Misma cantidad de intenciones en tarde (${pan.totalIntencionesTarde}) que vehículos CC en mañana (${pan.totalMananaCC}).`;
-                subtitle.textContent = `Horarios estimados de liberación mañana: ${pan.salidas1300} a las 13:00 • ${pan.salidas1330} a las 13:30 • ${pan.salidas1400} a las 14:00. Llegar puntual en orden de llegada.`;
+            // Según el plano de parqueaderos, el Centro de Control tiene 4 cupos reservados en amarillo
+            const cuposDisponibles = Math.max(0, 4 - totalSolicitantes + totalSalieron);
+            document.getElementById('stat-libres').textContent = cuposDisponibles;
+
+            // Actualizar Semaforo Banner
+            const banner = document.getElementById('semaforo-banner');
+            const icon = document.getElementById('semaforo-icon');
+            const title = document.getElementById('semaforo-title');
+            const desc = document.getElementById('semaforo-desc');
+
+            if (cuposDisponibles >= 2) {
+                banner.className = "rounded-2xl p-5 border transition-all duration-300 bg-emerald-950/20 border-emerald-500/30";
+                icon.className = "w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-500/30";
+                icon.innerHTML = '<i class="fa-solid fa-circle-check"></i>';
+                title.className = "text-base font-bold text-emerald-400";
+                title.textContent = "¡Alta Disponibilidad en Cupos!";
+                desc.textContent = "Hay espacio libre en los 4 parqueaderos designados del Centro de Control.";
+            } else if (cuposDisponibles === 1) {
+                banner.className = "rounded-2xl p-5 border transition-all duration-300 bg-amber-950/20 border-amber-500/30";
+                icon.className = "w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30";
+                icon.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i>';
+                title.className = "text-base font-bold text-amber-400";
+                title.textContent = "¡Último Cupo Disponible!";
+                desc.textContent = "Queda 1 solo espacio libre de relevo en el área del Centro de Control.";
             } else {
-                banner.className = 'rounded-2xl border p-4 sm:p-5 transition-all duration-300 bg-rose-950/35 border-rose-500/45';
-                iconBox.className = 'w-11 h-11 rounded-xl flex items-center justify-center shrink-0 bg-rose-500/20 text-rose-400 border border-rose-500/30 mt-0.5';
-                icon.className = 'fa-solid fa-fire text-xl';
-                pill.className = 'px-2.5 py-0.5 rounded-full text-[11px] font-extrabold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/30';
-                pill.textContent = `${diaLabel.toUpperCase()} • ALTA COMPETENCIA (${pan.balanceRelevo} REF. CC)`;
-                title.textContent = `Alta competencia el ${diaLabel} — Hay ${pan.totalIntencionesTarde} intenciones en tarde frente a solo ${pan.totalMananaCC} vehículos CC en mañana.`;
-                subtitle.textContent = `Quienes excedan los ${pan.totalMananaCC} puestos de relevo deberán buscar espacio libre por orden de llegada entre los 12 cupos compartidos.`;
-            }
-        }
-
-        function renderizarKPIs() {
-            const pan = calcularPanoramaRelevo();
-
-            document.getElementById('kpi-morning-total').textContent = pan.totalMananaCC;
-            document.getElementById('kpi-morning-sub').textContent = `${pan.parqueadosAunManana} aún parqueados • ${pan.salieronManana} ya salieron`;
-
-            document.getElementById('kpi-afternoon-total').textContent = pan.totalIntencionesTarde;
-
-            const balEl = document.getElementById('kpi-balance-value');
-            const balSub = document.getElementById('kpi-balance-sub');
-
-            if (pan.balanceRelevo > 0) {
-                balEl.textContent = `+${pan.balanceRelevo}`;
-                balEl.className = 'text-2xl sm:text-3xl font-extrabold font-mono text-emerald-400';
-                balSub.className = 'text-[11px] sm:text-xs text-emerald-400/90 mt-3 pt-2.5 border-t border-slate-800/80 font-medium';
-                balSub.textContent = `Sobran ${pan.balanceRelevo} puesto(s) ref. CC`;
-            } else if (pan.balanceRelevo === 0) {
-                balEl.textContent = '0';
-                balEl.className = 'text-2xl sm:text-3xl font-extrabold font-mono text-amber-400';
-                balSub.className = 'text-[11px] sm:text-xs text-amber-400/90 mt-3 pt-2.5 border-t border-slate-800/80 font-medium';
-                balSub.textContent = 'Demanda igual a oferta CC';
-            } else {
-                balEl.textContent = `${pan.balanceRelevo}`;
-                balEl.className = 'text-2xl sm:text-3xl font-extrabold font-mono text-rose-400';
-                balSub.className = 'text-[11px] sm:text-xs text-rose-400/90 mt-3 pt-2.5 border-t border-slate-800/80 font-medium';
-                balSub.textContent = `Faltan ${Math.abs(pan.balanceRelevo)} puesto(s) ref. CC`;
+                banner.className = "rounded-2xl p-5 border transition-all duration-300 bg-rose-950/20 border-rose-500/30";
+                icon.className = "w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-rose-500/20 text-rose-400 border border-rose-500/30";
+                icon.innerHTML = '<i class="fa-solid fa-ban"></i>';
+                title.className = "text-base font-bold text-rose-400";
+                title.textContent = "Cupos Copados";
+                desc.textContent = "Los 4 puestos asignados al Centro de Control están ocupados o solicitados.";
             }
 
-            document.getElementById('kpi-exits-summary').textContent = `${pan.salidas1300} / ${pan.salidas1330} / ${pan.salidas1400}`;
-            document.getElementById('kpi-exits-breakdown').textContent = `13:00 (${pan.salidas1300}) • 13:30 (${pan.salidas1330}) • 14:00 (${pan.salidas1400})`;
-
-            document.getElementById('badge-morning-count').textContent = `${pan.totalMananaCC} vehículos`;
-            document.getElementById('badge-afternoon-count').textContent = `${pan.totalIntencionesTarde} intenciones`;
-            document.getElementById('selector-ref-hint').textContent = `Ref. CC mañana: ${pan.totalMananaCC}`;
-            document.getElementById('queue-summary-text').textContent = `${pan.totalIntencionesTarde} intenciones vs ${pan.totalMananaCC} puestos CC`;
-            document.getElementById('btn-directorio-label').textContent = `Directorio (${estadoApp.operadores.length})`;
-        }
-
-        function renderizarRadarPuestosEnJuego() {
-            const datosDia = obtenerDatosDiaActual();
-            const container = document.getElementById('relay-radar-container');
-            const extraContainer = document.getElementById('extra-intentions-container');
-            const totalManana = datosDia.mañanaVehiculos.length;
-            const totalTarde = datosDia.tardeIntenciones.length;
-            const diaLabel = DIAS_HABILES.find(d => d.key === diaSeleccionado)?.label || '';
-
-            if (totalManana === 0) {
-                container.innerHTML = `
-                    <div class="bg-slate-950/70 border border-dashed border-slate-800 rounded-xl p-6 text-center">
-                        <p class="text-xs sm:text-sm font-semibold text-slate-300">No hay vehículos del Centro de Control registrados el ${diaLabel} en Turno Mañana</p>
-                        <p class="text-xs text-slate-500 mt-1">Cuando los compañeros de la mañana registren su vehículo y hora estimada de salida (13:00, 13:30 o 14:00), aquí aparecerán los puestos en juego.</p>
+            // Renderizar Turno Tarde
+            if(estadoApp.tardeSolicitantes.length === 0) {
+                containerTarde.innerHTML = `
+                    <div class="text-center py-8 text-slate-500 text-xs border border-dashed border-slate-800 rounded-xl">
+                        Ningún operador del turno tarde ha solicitado cupo todavía.
                     </div>
                 `;
             } else {
-                // Sort by those who already left first, then by estimated exit time (13:00 -> 13:30 -> 14:00)
-                const ordenadosManana = [...datosDia.mañanaVehiculos].sort((a, b) => {
-                    if (a.salio !== b.salio) return a.salio ? -1 : 1;
-                    return (a.horaSalidaEstimada || '14:00').localeCompare(b.horaSalidaEstimada || '14:00');
-                });
-
-                const cardsHTML = ordenadosManana.map((reg, index) => {
-                    const opManana = estadoApp.operadores.find(o => o.id === reg.id) || { nombre: 'Operador Mañana', placa: '---', vehiculo: '' };
-                    const intencionTarde = datosDia.tardeIntenciones[index] || null;
-                    const opTarde = intencionTarde
-                        ? (estadoApp.operadores.find(o => o.id === intencionTarde.id) || { nombre: 'Operador Tarde', placa: '---' })
-                        : null;
-
-                    const estadoBadge = reg.salio
-                        ? `<span class="px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-[10px] font-bold">
-                            <i class="fa-solid fa-door-open mr-1"></i>Ya salió (${reg.horaSalidaReal})
-                           </span>`
-                        : `<span class="px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 text-[10px] font-mono font-bold">
-                            <i class="fa-regular fa-clock mr-1"></i>Sale est. ${reg.horaSalidaEstimada}
-                           </span>`;
-
-                    const relevoBox = opTarde
-                        ? `<div class="mt-2.5 pt-2.5 border-t border-slate-800/90">
-                            <div class="flex items-center justify-between text-[10px] text-indigo-300 font-semibold">
-                                <span>Posible relevo ref. (#${index + 1}):</span>
-                                <span class="font-mono text-slate-400">Reg. ${intencionTarde.horaRegistro}</span>
+                estadoApp.tardeSolicitantes.forEach((sol, index) => {
+                    const item = document.createElement('div');
+                    item.className = "p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between gap-2";
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <div class="w-7 h-7 rounded-lg bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center text-xs font-bold">
+                                #${index + 1}
                             </div>
-                            <p class="text-xs font-bold text-white truncate mt-0.5">${opTarde.nombre} <span class="font-mono text-[11px] text-indigo-300">(${opTarde.placa})</span></p>
-                            <p class="text-[10px] text-amber-300/90 mt-1"><i class="fa-solid fa-person-walking-arrow-right mr-1"></i>Orden de llegada • Salida est. ${reg.horaSalidaEstimada}</p>
-                           </div>`
-                        : `<div class="mt-2.5 pt-2.5 border-t border-slate-800/90">
-                            <p class="text-[11px] text-slate-400 italic">Sin intención tarde asignada aún</p>
-                            <p class="text-[10px] text-slate-500 mt-0.5">Se libera aprox. ${reg.horaSalidaEstimada} (orden llegada)</p>
-                           </div>`;
-
-                    return `
-                        <div class="bg-slate-950/90 border ${reg.salio ? 'border-emerald-500/35' : 'border-slate-800'} rounded-xl p-3.5 flex flex-col justify-between">
                             <div>
-                                <div class="flex items-center justify-between gap-2 mb-2">
-                                    <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[11px] font-bold">Puesto CC #${index + 1}</span>
-                                    ${estadoBadge}
-                                </div>
-                                <p class="text-xs sm:text-sm font-bold text-white truncate">${opManana.nombre}</p>
-                                <p class="text-[11px] font-mono text-slate-400">${opManana.placa} • ${opManana.vehiculo}</p>
+                                <h4 class="text-xs font-bold text-slate-200">${sol.nombre}</h4>
+                                <p class="text-[11px] text-slate-400">Solicitado a las ${sol.hora} ${index < 4 ? '• <span class="text-emerald-400 font-semibold">Cupo Asignado (Zona Amarilla)</span>' : '• <span class="text-amber-400">En Lista de Espera</span>'}</p>
                             </div>
-                            ${relevoBox}
                         </div>
-                    `;
-                }).join('');
-
-                container.innerHTML = `<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${cardsHTML}</div>`;
-            }
-
-            // Extra intentions beyond morning CC count
-            if (totalTarde > totalManana) {
-                const extras = datosDia.tardeIntenciones.slice(totalManana);
-                const extrasChips = extras.map((ex, i) => {
-                    const op = estadoApp.operadores.find(o => o.id === ex.id) || { nombre: 'Operador', placa: '---' };
-                    const posReal = totalManana + i + 1;
-                    return `
-                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-rose-950/60 border border-rose-500/40 text-xs text-rose-200">
-                            <strong class="font-mono text-rose-300">#${posReal}</strong>
-                            <span>${op.nombre}</span>
-                            <span class="font-mono text-[11px] text-rose-300/80">(${op.placa})</span>
-                        </span>
-                    `;
-                }).join('');
-
-                extraContainer.classList.remove('hidden');
-                extraContainer.className = 'bg-rose-950/25 border border-rose-500/35 rounded-xl p-3.5 space-y-2';
-                extraContainer.innerHTML = `
-                    <div class="flex items-center gap-2 text-xs font-bold text-rose-300">
-                        <i class="fa-solid fa-triangle-exclamation"></i>
-                        <span>Intenciones extra (${extras.length}) — Dependen de cupos libres de otras áreas en Zona Amarilla:</span>
-                    </div>
-                    <div class="flex flex-wrap gap-2">
-                        ${extrasChips}
-                    </div>
-                `;
-            } else {
-                extraContainer.classList.add('hidden');
-                extraContainer.innerHTML = '';
-            }
-        }
-
-        function renderizarListaManana() {
-            const datosDia = obtenerDatosDiaActual();
-            const selectManana = document.getElementById('select-manana-operador');
-            if (selectManana) {
-                const prev = selectManana.value;
-                const opts = estadoApp.operadores.map(op => {
-                    const yaEnManana = datosDia.mañanaVehiculos.some(v => v.id === op.id);
-                    return `<option value="${op.id}" ${yaEnManana ? 'disabled' : ''}>${op.nombre} — ${op.placa}${yaEnManana ? ' [Ya registrado]' : ''}</option>`;
-                }).join('');
-                selectManana.innerHTML = `<option value="">-- Selecciona operador --</option>${opts}`;
-                if (prev) selectManana.value = prev;
-            }
-
-            const container = document.getElementById('morning-list-container');
-            const termino = (document.getElementById('search-morning').value || '').toLowerCase().trim();
-
-            const filtrados = estadoApp.operadores.filter(op => {
-                const reg = datosDia.mañanaVehiculos.find(v => v.id === op.id);
-                if (soloEnVehiculoFiltro && !reg) return false;
-
-                if (!termino) return true;
-                const texto = `${op.nombre} ${op.placa} ${op.vehiculo} ${op.color} ${op.combustible}`.toLowerCase();
-                return texto.includes(termino);
-            });
-
-            if (filtrados.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-8 px-4 bg-slate-950/60 border border-slate-800/80 rounded-xl">
-                        <i class="fa-solid fa-car-burst text-slate-600 text-2xl mb-2"></i>
-                        <p class="text-xs text-slate-400">No se encontraron vehículos con ese filtro o búsqueda.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            container.innerHTML = filtrados.map(op => {
-                const reg = datosDia.mañanaVehiculos.find(v => v.id === op.id);
-                const placaPendiente = !op.placa || op.placa === 'SIN PLACA' || op.placa === 'XXX';
-
-                let cardBorder = 'bg-slate-950/70 border-slate-800/90 hover:border-slate-700';
-                if (reg && !reg.salio) cardBorder = 'bg-blue-950/25 border-blue-500/40';
-                if (reg && reg.salio) cardBorder = 'bg-emerald-950/20 border-emerald-500/35';
-
-                const placaBadge = placaPendiente
-                    ? `<button onclick="abrirModalVehiculo('${op.id}')" title="Clic para actualizar placa" class="px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/40 text-amber-300 font-mono text-[11px] font-bold hover:bg-amber-500/30 transition flex items-center gap-1">
-                        <span>${op.placa || 'SIN PLACA'}</span>
-                        <i class="fa-solid fa-pen text-[9px]"></i>
-                       </button>`
-                    : `<span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] font-bold">${op.placa}</span>`;
-
-                const ecoBadge = (op.combustible === 'Hybrid' || op.combustible === 'Eléctrico')
-                    ? `<span class="px-1.5 py-0.5 rounded bg-teal-500/15 border border-teal-500/30 text-teal-300 text-[10px] font-semibold">${op.combustible}</span>`
-                    : '';
-
-                let actionButtons = '';
-                let exitHourPills = '';
-
-                if (!reg) {
-                    actionButtons = `
-                        <button onclick="registrarIngresoManana('${op.id}')" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-blue-600 text-slate-200 hover:text-white border border-slate-700 hover:border-blue-500 text-xs font-semibold transition shrink-0">
-                            Ingresé en vehículo
+                        <button onclick="quitarSolicitanteTarde('${sol.id}')" class="text-slate-500 hover:text-rose-400 p-1 text-xs transition">
+                            <i class="fa-solid fa-trash-can"></i>
                         </button>
                     `;
-                } else if (!reg.salio) {
-                    const pills = OPCIONES_HORA_SALIDA.map(hr => {
-                        const activa = reg.horaSalidaEstimada === hr;
-                        const cls = activa
-                            ? 'bg-amber-500 text-slate-950 border-amber-400 font-extrabold'
-                            : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-700 font-medium';
-                        return `<button onclick="actualizarHoraSalidaEstimadaManana('${op.id}', '${hr}')" class="px-2 py-0.5 rounded-md border text-[10px] font-mono transition ${cls}">${hr}</button>`;
-                    }).join('');
-
-                    exitHourPills = `
-                        <div class="mt-2 pt-2 border-t border-slate-800/80 flex items-center justify-between gap-2 flex-wrap">
-                            <span class="text-[10px] font-semibold text-amber-300/90"><i class="fa-regular fa-clock mr-1"></i>Hora estimada salida:</span>
-                            <div class="flex items-center gap-1">${pills}</div>
-                        </div>
-                    `;
-
-                    actionButtons = `
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <button onclick="marcarSalidaManana('${op.id}')" class="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-xs transition shadow-md shadow-amber-500/20">
-                                Marcar Salida
-                            </button>
-                            <button onclick="quitarRegistroManana('${op.id}')" title="Quitar registro" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-rose-400 flex items-center justify-center text-xs transition">
-                                <i class="fa-solid fa-xmark"></i>
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    actionButtons = `
-                        <div class="flex items-center gap-1.5 shrink-0">
-                            <span class="px-2.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center gap-1">
-                                <i class="fa-solid fa-check"></i> Ya salí (${reg.horaSalidaReal})
-                            </span>
-                            <button onclick="deshacerSalidaManana('${op.id}')" title="Deshacer salida" class="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-amber-300 flex items-center justify-center text-xs transition">
-                                <i class="fa-solid fa-rotate-left"></i>
-                            </button>
-                        </div>
-                    `;
-                }
-
-                const detallesVehiculo = [op.vehiculo, op.color].filter(Boolean).join(' • ');
-                const horaIngresoTag = reg ? `<span class="text-[10px] font-mono text-blue-300 ml-1">• Ingreso ${reg.horaIngreso}</span>` : '';
-
-                return `
-                    <div class="p-3 rounded-xl border ${cardBorder} transition">
-                        <div class="flex items-center justify-between gap-3">
-                            <div class="min-w-0 flex-1">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="font-bold text-xs sm:text-sm text-white truncate">${op.nombre}</span>
-                                    ${placaBadge}
-                                    ${ecoBadge}
-                                </div>
-                                <p class="text-[11px] text-slate-400 mt-0.5 truncate">
-                                    ${detallesVehiculo || 'Vehículo registrado'} ${horaIngresoTag}
-                                </p>
-                            </div>
-                            ${actionButtons}
-                        </div>
-                        ${exitHourPills}
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderizarSelectorYListaTarde() {
-            const datosDia = obtenerDatosDiaActual();
-            const select = document.getElementById('select-tarde-operador');
-            const valorPrevio = select.value;
-            const diaLabel = DIAS_HABILES.find(d => d.key === diaSeleccionado)?.label || '';
-
-            const opciones = estadoApp.operadores.map(op => {
-                const yaRegistrado = datosDia.tardeIntenciones.some(s => s.id === op.id);
-                const marca = yaRegistrado ? ' [Intención registrada]' : '';
-                return `<option value="${op.id}" ${yaRegistrado ? 'disabled' : ''}>${op.nombre} — ${op.placa} (${op.vehiculo})${marca}</option>`;
-            }).join('');
-
-            select.innerHTML = `<option value="">-- Selecciona tu nombre y placa --</option>${opciones}`;
-            if (valorPrevio) select.value = valorPrevio;
-
-            const container = document.getElementById('afternoon-list-container');
-            const totalMananaCC = datosDia.mañanaVehiculos.length;
-
-            if (datosDia.tardeIntenciones.length === 0) {
-                container.innerHTML = `
-                    <div class="text-center py-10 px-4 bg-slate-950/60 border border-dashed border-slate-800 rounded-xl">
-                        <div class="w-10 h-10 rounded-full bg-indigo-500/10 text-indigo-400 flex items-center justify-center mx-auto mb-2.5">
-                            <i class="fa-solid fa-car-side"></i>
-                        </div>
-                        <p class="text-xs sm:text-sm font-semibold text-slate-300">Aún no hay intenciones registradas el ${diaLabel} para el Turno Tarde</p>
-                        <p class="text-xs text-slate-500 mt-1">Selecciona tu perfil arriba y pulsa "Voy en vehículo" para informar al equipo.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            // Sort morning slots so afternoon intentions see earliest expected exit times
-            const slotsMananaOrdenados = [...datosDia.mañanaVehiculos].sort((a, b) => {
-                if (a.salio !== b.salio) return a.salio ? -1 : 1;
-                return (a.horaSalidaEstimada || '14:00').localeCompare(b.horaSalidaEstimada || '14:00');
-            });
-
-            container.innerHTML = datosDia.tardeIntenciones.map((item, index) => {
-                const op = estadoApp.operadores.find(o => o.id === item.id) || { nombre: 'Operador', placa: '---', vehiculo: '' };
-                const posicion = index + 1;
-                const dentroDeReferenciaCC = posicion <= totalMananaCC;
-                const slotPareado = dentroDeReferenciaCC ? slotsMananaOrdenados[index] : null;
-
-                const cardStyle = dentroDeReferenciaCC
-                    ? 'bg-emerald-950/20 border-emerald-500/40'
-                    : 'bg-amber-950/20 border-amber-500/40';
-
-                const rankBadgeStyle = dentroDeReferenciaCC
-                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40'
-                    : 'bg-amber-500/20 text-amber-300 border-amber-500/40';
-
-                const infoHorarioRelevo = slotPareado
-                    ? (slotPareado.salio ? `Ya liberado (${slotPareado.horaSalidaReal})` : `Salida est. ${slotPareado.horaSalidaEstimada}`)
-                    : '';
-
-                const refBadge = dentroDeReferenciaCC
-                    ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 text-[11px] font-bold">
-                        <i class="fa-solid fa-arrows-rotate"></i> Ref. puesto CC (#${posicion} de ${totalMananaCC} • ${infoHorarioRelevo})
-                       </span>`
-                    : `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30 text-amber-300 text-[11px] font-bold">
-                        <i class="fa-solid fa-magnifying-glass-location"></i> Sin relevo CC directo (buscar cupo libre en zona)
-                       </span>`;
-
-                return `
-                    <div class="p-3.5 rounded-xl border ${cardStyle} flex items-center justify-between gap-3 transition">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="w-8 h-8 rounded-lg border ${rankBadgeStyle} font-mono text-xs font-extrabold flex items-center justify-center shrink-0">
-                                #${posicion}
-                            </div>
-                            <div class="min-w-0">
-                                <div class="flex items-center gap-2 flex-wrap">
-                                    <span class="font-bold text-xs sm:text-sm text-white truncate">${op.nombre}</span>
-                                    <span class="px-2 py-0.5 rounded bg-slate-800 border border-slate-700 text-slate-200 font-mono text-[11px] font-bold">${op.placa}</span>
-                                </div>
-                                <div class="flex items-center gap-2 flex-wrap mt-1.5">
-                                    ${refBadge}
-                                    <span class="text-[11px] font-mono text-slate-400">Reg. ${item.horaRegistro}</span>
-                                </div>
-                            </div>
-                        </div>
-                        <button onclick="cancelarIntencionTarde('${item.id}')" title="Cancelar intención" class="w-8 h-8 rounded-lg bg-slate-800/80 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700/80 flex items-center justify-center transition shrink-0">
-                            <i class="fa-solid fa-trash-can text-xs"></i>
-                        </button>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        function renderizarTodo() {
-            renderizarSelectorDiasSemana();
-            renderizarBannerRadar();
-            renderizarKPIs();
-            renderizarRadarPuestosEnJuego();
-            renderizarListaManana();
-            renderizarSelectorYListaTarde();
-        }
-
-        // --- 9. MODALS, DIRECTORY CRUD & EXPORT ---
-        function abrirModalPlano() {
-            document.getElementById('modal-plano').classList.remove('hidden');
-        }
-
-        function abrirModalConfirmarReinicio() {
-            document.getElementById('modal-reiniciar').classList.remove('hidden');
-        }
-
-        function cerrarModal(id) {
-            document.getElementById(id).classList.add('hidden');
-        }
-
-        function abrirModalVehiculo(idEditar = null) {
-            const modal = document.getElementById('modal-vehiculo');
-            const titulo = document.getElementById('modal-vehiculo-titulo');
-            const inputId = document.getElementById('edit-vehiculo-id');
-            const inputNombre = document.getElementById('input-nombre');
-            const inputPlaca = document.getElementById('input-placa');
-            const inputVehiculo = document.getElementById('input-vehiculo');
-            const inputColor = document.getElementById('input-color');
-            const inputCombustible = document.getElementById('input-combustible');
-
-            if (idEditar) {
-                const op = estadoApp.operadores.find(o => o.id === idEditar);
-                if (op) {
-                    titulo.textContent = 'Actualizar Placa / Datos del Vehículo';
-                    inputId.value = op.id;
-                    inputNombre.value = op.nombre;
-                    inputPlaca.value = (op.placa === 'SIN PLACA' || op.placa === 'XXX') ? '' : op.placa;
-                    inputVehiculo.value = op.vehiculo || '';
-                    inputColor.value = op.color || '';
-                    inputCombustible.value = op.combustible || 'Gasolina';
-                }
-            } else {
-                titulo.textContent = 'Agregar Nuevo Vehículo al Directorio';
-                inputId.value = '';
-                inputNombre.value = '';
-                inputPlaca.value = '';
-                inputVehiculo.value = '';
-                inputColor.value = '';
-                inputCombustible.value = 'Gasolina';
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function guardarVehiculo(e) {
-            e.preventDefault();
-            const id = document.getElementById('edit-vehiculo-id').value;
-            const nombre = document.getElementById('input-nombre').value.trim();
-            const placa = document.getElementById('input-placa').value.trim().toUpperCase();
-            const vehiculo = document.getElementById('input-vehiculo').value.trim() || 'Automóvil';
-            const color = document.getElementById('input-color').value.trim();
-            const combustible = document.getElementById('input-combustible').value;
-
-            if (!nombre || !placa) return;
-
-            if (id) {
-                const idx = estadoApp.operadores.findIndex(o => o.id === id);
-                if (idx !== -1) {
-                    estadoApp.operadores[idx] = { ...estadoApp.operadores[idx], nombre, placa, vehiculo, color, combustible };
-                    mostrarToast(`Datos actualizados: ${nombre} (${placa})`, 'success');
-                }
-            } else {
-                const nuevoId = 'op-custom-' + Date.now();
-                estadoApp.operadores.unshift({ id: nuevoId, nombre, placa, vehiculo, color, combustible });
-                mostrarToast(`Vehículo agregado al directorio: ${nombre} (${placa})`, 'success');
-            }
-
-            guardarEstado();
-            cerrarModal('modal-vehiculo');
-            renderizarTodo();
-        }
-
-        function descargarHTML() {
-            try {
-                const htmlCompleto = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
-                const blob = new Blob([htmlCompleto], { type: 'text/html;charset=utf-8' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'index.html';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                mostrarToast('Archivo index.html descargado listo para subir a GitHub Pages.', 'success');
-            } catch (err) {
-                mostrarToast('No se pudo generar la descarga automática.', 'warning');
+                    containerTarde.appendChild(item);
+                });
             }
         }
 
-        // --- 10. TOAST NOTIFICATIONS ---
-        function mostrarToast(mensaje, tipo = 'info') {
-            const container = document.getElementById('toast-container');
-            const toast = document.createElement('div');
-
-            let colores = 'bg-slate-900 border-slate-700 text-slate-100';
-            let icono = 'fa-circle-info text-indigo-400';
-
-            if (tipo === 'success') {
-                colores = 'bg-emerald-950/95 border-emerald-500/50 text-emerald-100';
-                icono = 'fa-circle-check text-emerald-400';
-            } else if (tipo === 'warning') {
-                colores = 'bg-amber-950/95 border-amber-500/50 text-amber-100';
-                icono = 'fa-triangle-exclamation text-amber-400';
-            }
-
-            toast.className = `pointer-events-auto border ${colores} px-4 py-3 rounded-xl shadow-2xl text-xs font-semibold flex items-center gap-2.5 transition-all duration-300 transform translate-y-2 opacity-0`;
-            toast.innerHTML = `<i class="fa-solid ${icono} text-sm shrink-0"></i><span>${mensaje}</span>`;
-
-            container.appendChild(toast);
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-y-2', 'opacity-0');
-            });
-
-            setTimeout(() => {
-                toast.classList.add('opacity-0', 'translate-y-2');
-                setTimeout(() => toast.remove(), 300);
-            }, 3600);
-        }
-
-        // --- 11. INITIALIZATION ON LOAD ---
-        window.onload = function() {
-            inicializarEstado();
-            actualizarReloj();
-            setInterval(actualizarReloj, 1000);
-            renderizarTodo();
-        };
+        // Inicializar al cargar
+        document.addEventListener("DOMContentLoaded", renderizarApp);
     </script>
 </body>
 </html>
