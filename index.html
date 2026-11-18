@@ -983,7 +983,7 @@ url:e,reason:"blocked_domain_not_allowlisted"},b.parentOrigin);throw new DOMExce
                     <div>
                         <p class="text-[11px] sm:text-xs font-semibold uppercase tracking-wider text-slate-400">Cupos Zona Operación</p>
                         <div class="flex items-baseline gap-2 mt-1.5">
-                            <span id="kpi-base-quota" class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">4</span>
+                            <span id="kpi-base-quota" class="text-2xl sm:text-3xl font-extrabold font-mono text-amber-400">12</span>
                             <span class="text-xs text-slate-400">puestos plano</span>
                         </div>
                     </div>
@@ -992,7 +992,7 @@ url:e,reason:"blocked_domain_not_allowlisted"},b.parentOrigin);throw new DOMExce
                     </div>
                 </div>
                 <p class="text-[11px] sm:text-xs text-slate-400 mt-2.5 pt-2 border-t border-slate-800/80">
-                    Zona amarilla • Máx. 11/turno
+                    Zona amarilla • Máx. 12/turno
                 </p>
             </div>
 
@@ -2362,15 +2362,15 @@ url:e,reason:"blocked_domain_not_allowlisted"},b.parentOrigin);throw new DOMExce
 
         // --- CORE LOGIC ---
         function calcularDisponibilidad() {
-            const cuposBase = estadoApp.cuposZona || 4;
+            const cuposBase = estadoApp.cuposZona || 12;
             const totalEnCarroMañana = estadoApp.mañanaEnCarro.length;
             const totalSalieronMañana = estadoApp.mañanaSalieron.length;
             const parqueadosAunMañana = Math.max(0, totalEnCarroMañana - totalSalieronMañana);
             const totalSolicitantesTarde = estadoApp.tardeSolicitantes.length;
 
             // Cupos efectivos disponibles para quienes llegan a las 2:00 PM:
-            // De los 4 cupos base de Operación, restamos los que aún siguen ocupados por turno mañana y los ya solicitados por tarde.
-            // Si mañana ocupó más de 4 (ej. 5 o 6 en zona amarilla), los que marcan salida también liberan puestos para relevo.
+            // De los 12 cupos base de Operación, restamos los que aún siguen ocupados por turno mañana y los ya solicitados por tarde.
+            // Si mañana ocupó más de 12 (ej. 13 o 14 en zona amarilla), los que marcan salida también liberan puestos para relevo.
             const cuposLibresAhora = Math.max(0, cuposBase - parqueadosAunMañana - totalSolicitantesTarde);
 
             return {
