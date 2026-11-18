@@ -629,14 +629,14 @@
             return mapa[weekdayStr] || { key: 'lunes', esFinDeSemana: false };
         }
 
-        function crearEscenarioDemoInicial(diaActivoKey) {
+        /*function crearEscenarioDemoInicial(diaActivoKey) {
             const diasVacios = {
                 lunes: { mañanaVehiculos: [], tardeIntenciones: [] },
                 martes: { mañanaVehiculos: [], tardeIntenciones: [] },
                 miercoles: { mañanaVehiculos: [], tardeIntenciones: [] },
                 jueves: { mañanaVehiculos: [], tardeIntenciones: [] },
                 viernes: { mañanaVehiculos: [], tardeIntenciones: [] }
-            };
+            };*/
 
             // Populate realistic demo data on the active weekday
             diasVacios[diaActivoKey] = {
@@ -696,15 +696,49 @@
                             tardeIntenciones: Array.isArray(diaGuardado.tardeIntenciones) ? diaGuardado.tardeIntenciones : []
                         };
                     });
-                } else {
-                    estadoApp = crearEscenarioDemoInicial(diaSeleccionado);
-                    guardarEstado();
-                }
-            } catch (e) {
-                console.error("Error leyendo estado local:", e);
-                estadoApp = crearEscenarioDemoInicial(diaSeleccionado);
-            }
+
+                    else {
+
+    estadoApp = {
+
+        operadores: JSON.parse(
+            JSON.stringify(DIRECTORIO_INICIAL)
+        ),
+
+        dias: {
+            lunes:{mañanaVehiculos:[],tardeIntenciones:[]},
+            martes:{mañanaVehiculos:[],tardeIntenciones:[]},
+            miercoles:{mañanaVehiculos:[],tardeIntenciones:[]},
+            jueves:{mañanaVehiculos:[],tardeIntenciones:[]},
+            viernes:{mañanaVehiculos:[],tardeIntenciones:[]}
         }
+
+    };
+
+    guardarEstado();
+}
+   ----------------------------
+
+       atch (e) {
+
+    console.error("Error leyendo estado local:", e);
+
+    estadoApp = {
+
+        operadores: JSON.parse(
+            JSON.stringify(DIRECTORIO_INICIAL)
+        ),
+
+        dias: {
+            lunes:{mañanaVehiculos:[],tardeIntenciones:[]},
+            martes:{mañanaVehiculos:[],tardeIntenciones:[]},
+            miercoles:{mañanaVehiculos:[],tardeIntenciones:[]},
+            jueves:{mañanaVehiculos:[],tardeIntenciones:[]},
+            viernes:{mañanaVehiculos:[],tardeIntenciones:[]}
+        }
+    };
+}
+       
 
         function guardarEstado() {
             try {
