@@ -854,7 +854,7 @@
   <!-- LÓGICA DE LA APLICACIÓN (JAVASCRIPT PURO)                               -->
   <!-- ======================================================================= -->
   <script>
-    // 1. BASE DE DATOS PRECARGADA CON LOS 41 REGISTROS LIMPIOS DEL EXCEL
+    // 1. BASE DE DATOS PRECARGADA CON LOS 43 REGISTROS DE VEHICULOS 
     const INITIAL_VEHICLES = [
       { id: 'v01', owner: 'Julian Cadavid', plate: 'GLT634', type: 'Automóvil', model: 'Seat Leon', color: 'Azul', fuel: 'Gasolina' },
       { id: 'v02', owner: 'Ferney Blanco', plate: 'RDK766', type: 'Automóvil', model: 'VW Jetta', color: 'Rojo', fuel: 'Gasolina' },
@@ -875,7 +875,7 @@
       { id: 'v17', owner: 'Miguel Bravo', plate: 'UUN411', type: 'Automóvil', model: 'Renault Logan', color: 'Rojo', fuel: 'Gasolina' },
       { id: 'v18', owner: 'German Figueroa', plate: 'HCK572', type: 'Automóvil', model: 'Renault Logan', color: 'Rojo', fuel: 'Gasolina' },
       { id: 'v19', owner: 'Oscar Bulla', plate: 'EMT763', type: 'Automóvil', model: 'Peugeot 208', color: 'Gris', fuel: 'Gasolina' },
-      { id: 'v20', owner: 'Carlos Diego Guzmán', plate: 'JNT902', type: 'Automóvil', model: 'Mazda CX-30', color: 'Rojo', fuel: 'Gasolina' },
+      { id: 'v20', owner: 'Diego Guzmán', plate: 'JNT902', type: 'Automóvil', model: 'Mazda CX-30', color: 'Rojo', fuel: 'Gasolina' },
       { id: 'v21', owner: 'Daniel Hernandez', plate: 'MPN756', type: 'Automóvil', model: 'Mazda CX-5', color: 'Rojo', fuel: 'Gasolina' },
       { id: 'v22', owner: 'Edgar Dominguez', plate: 'URX729', type: 'Automóvil', model: 'Suzuki Ertiga', color: 'Plata', fuel: 'Gasolina' },
       { id: 'v23', owner: 'Fredy Bohorquez', plate: 'URV390', type: 'Automóvil', model: 'Nissan Frontier', color: 'Rojo', fuel: 'Diésel' },
@@ -884,7 +884,7 @@
       { id: 'v26', owner: 'Lina Peña', plate: 'FVS902', type: 'Automóvil', model: 'Mazda 3', color: 'Rojo', fuel: 'Gasolina' },
       { id: 'v27', owner: 'Darvis Cardona', plate: 'REW409', type: 'Automóvil', model: 'Kia Cerato', color: 'Blanco', fuel: 'Gasolina' },
       { id: 'v28', owner: 'Yecid Beltran (Moto)', plate: 'EHF81D', type: 'Moto', model: 'Motocicleta', color: 'Roja', fuel: 'Gasolina' },
-      { id: 'v29', owner: 'Cristian Moreno', plate: 'NKY3962', type: 'Automóvil', model: 'Ford Escape', color: 'Rojo', fuel: 'Gasolina' },
+      { id: 'v29', owner: 'Cristian Moreno', plate: 'NKY392', type: 'Automóvil', model: 'Ford Escape', color: 'Rojo', fuel: 'Hybrid' },
       { id: 'v30', owner: 'José Ricardo Parra', plate: 'FIZ978', type: 'Automóvil', model: 'Fiat 1 Way', color: 'No especificado', fuel: 'Gasolina' },
       { id: 'v31', owner: 'Óscar Valderrama', plate: 'GMU862', type: 'Automóvil', model: 'Ford Ecosport', color: 'No especificado', fuel: 'Gasolina' },
       { id: 'v32', owner: 'Camilo Moya', plate: 'QQL216', type: 'Automóvil', model: 'BYD Yuan Plus', color: 'Gris', fuel: 'Eléctrico' },
@@ -897,6 +897,8 @@
       { id: 'v39', owner: 'Juan Garzon', plate: '', type: 'Automóvil', model: 'Tesla', color: 'Rojo', fuel: 'Eléctrico' },
       { id: 'v40', owner: 'Marco Merchan', plate: '', type: 'Automóvil', model: 'Por registrar', color: 'No especificado', fuel: 'No especificado' },
       { id: 'v41', owner: 'Carlos Barrios', plate: '', type: 'Automóvil', model: 'Mazda CX-5', color: 'Rojo', fuel: 'Gasolina' }
+      { id: 'v42', owner: 'PILAR VIASUS', plate: 'JYL218', type: 'Automóvil', model: 'Toyota Corolla', color: 'Azul', fuel: 'Hybrid' }
+      { id: 'v43', owner: 'German Hernández', plate: 'DQN586', type: 'Automóvil', model: 'Mazda CX-5', color: 'Azul', fuel: 'Gasolina' }
     ];
 
     // 2. ESTADO GLOBAL DE LA APLICACIÓN
@@ -1388,7 +1390,7 @@
             { recordId: 'sim1', vehicleId: 'v01', owner: 'Julian Cadavid', plate: 'GLT634', type: 'Automóvil', model: 'Seat Leon', color: 'Azul', exitTime: '13:30', slot: 1, timestamp: '05:52' },
             { recordId: 'sim2', vehicleId: 'v09', owner: 'Sebastian Rodas', plate: 'DMW327', type: 'Automóvil', model: 'Toyota Hybrid', color: 'Gris', exitTime: '13:30', slot: 2, timestamp: '05:55' },
             { recordId: 'sim3', vehicleId: 'v13', owner: 'Leonardo Sanchez', plate: 'ELP168', type: 'Automóvil', model: 'Mazda CX-30', color: 'Gris', exitTime: '13:30', slot: 4, timestamp: '05:58' },
-            { recordId: 'sim4', vehicleId: 'v20', owner: 'Carlos Diego Guzmán', plate: 'JNT902', type: 'Automóvil', model: 'Mazda CX-30', color: 'Rojo', exitTime: '13:30', slot: 6, timestamp: '06:01' },
+            { recordId: 'sim4', vehicleId: 'v20', owner: 'Diego Guzmán', plate: 'JNT902', type: 'Automóvil', model: 'Mazda CX-30', color: 'Rojo', exitTime: '13:30', slot: 6, timestamp: '06:01' },
             { recordId: 'sim5', vehicleId: 'v26', owner: 'Lina Peña', plate: 'FVS902', type: 'Automóvil', model: 'Mazda 3', color: 'Rojo', exitTime: '14:00', slot: 9, timestamp: '06:04' },
             { recordId: 'sim6', vehicleId: 'v32', owner: 'Camilo Moya', plate: 'QQL216', type: 'Automóvil', model: 'BYD Yuan Plus', color: 'Gris', exitTime: '14:00', slot: 10, timestamp: '06:08' }
           ];
@@ -1407,7 +1409,7 @@
     function promptResetDay() {
       openConfirmModal(
         'Iniciar Nueva Jornada',
-        '¿Deseas limpiar todos los registros del Turno Mañana y Turno Tarde de hoy? El directorio de 41 vehículos se mantendrá intacto.',
+        '¿Deseas limpiar todos los registros del Turno Mañana y Turno Tarde de hoy? El directorio de 43 vehículos se mantendrá intacto.',
         () => {
           state.amParked = [];
           state.pmIntents = [];
