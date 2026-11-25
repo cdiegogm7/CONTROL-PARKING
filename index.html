@@ -1509,6 +1509,13 @@
 
     // 10. SIMULACIÓN DE JORNADA TÍPICA (6 CARROS AM) Y REINICIO
     function promptSimulateTypicalDay() {
+      const enteredPin = prompt('🔒 Acceso Administrador\nIngresa la clave para cargar la simulación de jornada:');
+      if (enteredPin === null) return;
+
+      if (enteredPin.trim() !== ADMIN_PIN) {
+      showToast('Clave de administrador incorrecta.', 'error');
+      return;
+    }
       openConfirmModal(
         'Simular Jornada Típica (6 Vehículos AM)',
         'Se cargarán 6 vehículos reales del Centro de Control en el Turno Mañana (4 salen a las 13:30 y 2 a las 14:00) más 3 compañeros con intención en la tarde para visualizar el comportamiento.',
