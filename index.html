@@ -1521,17 +1521,17 @@
         'Se cargarán 6 vehículos reales del Centro de Control en el Turno Mañana (4 salen a las 13:30 y 2 a las 14:00) más 3 compañeros con intención en la tarde para visualizar el comportamiento.',
         () => {
           state.amParked = [
-            { recordId: 'sim1', vehicleId: 'v01', owner: 'Julian Cadavid', plate: 'GLT634', type: 'Automóvil', model: 'Seat Leon', color: 'Azul', exitTime: '13:30', slot: 1, timestamp: '05:52' },
-            { recordId: 'sim2', vehicleId: 'v09', owner: 'Sebastian Rodas', plate: 'DMW327', type: 'Automóvil', model: 'Toyota Hybrid', color: 'Gris', exitTime: '13:30', slot: 2, timestamp: '05:55' },
-            { recordId: 'sim3', vehicleId: 'v13', owner: 'Leonardo Sanchez', plate: 'ELP168', type: 'Automóvil', model: 'Mazda CX-30', color: 'Gris', exitTime: '13:30', slot: 4, timestamp: '05:58' },
-            { recordId: 'sim4', vehicleId: 'v20', owner: 'Diego Guzmán', plate: 'JNT902', type: 'Automóvil', model: 'Mazda CX-30', color: 'Rojo', exitTime: '13:30', slot: 6, timestamp: '06:01' },
-            { recordId: 'sim5', vehicleId: 'v26', owner: 'Lina Peña', plate: 'FVS902', type: 'Automóvil', model: 'Mazda 3', color: 'Rojo', exitTime: '14:00', slot: 9, timestamp: '06:04' },
-            { recordId: 'sim6', vehicleId: 'v32', owner: 'Camilo Moya', plate: 'QQL216', type: 'Automóvil', model: 'BYD Yuan Plus', color: 'Gris', exitTime: '14:00', slot: 10, timestamp: '06:08' }
+            { recordId: 'sim1', vehicleId: 'v01', owner: 'Julian Cadavid', plate: 'GLT634', type: 'Automóvil', model: 'Seat Leon', color: 'Azul', exitTime: '13:30', slot: 1, timestamp: '05:52', createdByDeviceId: getDeviceId() },
+            { recordId: 'sim2', vehicleId: 'v09', owner: 'Sebastian Rodas', plate: 'DMW327', type: 'Automóvil', model: 'Toyota Hybrid', color: 'Gris', exitTime: '13:30', slot: 2, timestamp: '05:55', createdByDeviceId: getDeviceId() },
+            { recordId: 'sim3', vehicleId: 'v13', owner: 'Leonardo Sanchez', plate: 'ELP168', type: 'Automóvil', model: 'Mazda CX-30', color: 'Gris', exitTime: '13:30', slot: 4, timestamp: '05:58', createdByDeviceId: getDeviceId() },
+            { recordId: 'sim4', vehicleId: 'v20', owner: 'Diego Guzmán', plate: 'JNT902', type: 'Automóvil', model: 'Mazda CX-30', color: 'Rojo', exitTime: '13:30', slot: 6, timestamp: '06:01', createdByDeviceId: getDeviceId() },
+            { recordId: 'sim5', vehicleId: 'v26', owner: 'Lina Peña', plate: 'FVS902', type: 'Automóvil', model: 'Mazda 3', color: 'Rojo', exitTime: '14:00', slot: 9, timestamp: '06:04', createdByDeviceId: getDeviceId() },
+            { recordId: 'sim6', vehicleId: 'v32', owner: 'Camilo Moya', plate: 'QQL216', type: 'Automóvil', model: 'BYD Yuan Plus', color: 'Gris', exitTime: '14:00', slot: 10, timestamp: '06:08', createdByDeviceId: getDeviceId() }
           ];
           state.pmIntents = [
-            { recordId: 'simp1', vehicleId: 'v02', owner: 'Ferney Blanco', plate: 'RDK766', type: 'Automóvil', model: 'VW Jetta', color: 'Rojo', arrivalTime: '13:30', timestamp: '10:15' },
-            { recordId: 'simp2', vehicleId: 'v11', owner: 'Jhon Jairo Guevara', plate: 'URT036', type: 'Automóvil', model: 'BYD', color: 'Gris', arrivalTime: '13:30', timestamp: '11:02' },
-            { recordId: 'simp3', vehicleId: 'v21', owner: 'Daniel Hernandez', plate: 'MPN756', type: 'Automóvil', model: 'Mazda CX-5', color: 'Rojo', arrivalTime: '14:00', timestamp: '11:40' }
+            { recordId: 'simp1', vehicleId: 'v02', owner: 'Ferney Blanco', plate: 'RDK766', type: 'Automóvil', model: 'VW Jetta', color: 'Rojo', arrivalTime: '13:30', timestamp: '10:15', createdByDeviceId: getDeviceId() },
+            { recordId: 'simp2', vehicleId: 'v11', owner: 'Jhon Jairo Guevara', plate: 'URT036', type: 'Automóvil', model: 'BYD', color: 'Gris', arrivalTime: '13:30', timestamp: '11:02', createdByDeviceId: getDeviceId() },
+            { recordId: 'simp3', vehicleId: 'v21', owner: 'Daniel Hernandez', plate: 'MPN756', type: 'Automóvil', model: 'Mazda CX-5', color: 'Rojo', arrivalTime: '14:00', timestamp: '11:40', createdByDeviceId: getDeviceId() }
           ];
           saveActivityLocal();
           renderAll();
