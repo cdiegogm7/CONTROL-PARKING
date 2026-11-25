@@ -1098,6 +1098,37 @@
       }
     }
 
+  function checkMidnightReset() {
+  const todayBogota = getTodayDateKey(); // Fecha YYYY-MM-DD en America/Bogota
+
+  if (!state.lastResetDate) {
+    state.lastResetDate = todayBogota;
+    return false;
+  }
+
+  if (state.lastResetDate !== todayBogota) {
+    state.amParked = [];
+    state.pmIntents = [];
+    state.lastResetDate = todayBogota;
+
+    if (typeof saveActivityLocal === 'function') {
+      saveActivityLocal();
+    }
+    if (typeof syncToFirebase === 'function') {
+      syncToFirebase();
+    }
+    if (typeof renderAll === 'function') {
+      renderAll();
+    }
+    if (typeof showToast === 'function') {
+      showToast('Nueva jornada iniciada automáticamente (hora Colombia).', 'info');
+    }
+    return true;
+  }
+
+  return false;
+}
+    
     // 5. RELOJ EN VIVO (HORA BOGOTÁ) Y DETECCIÓN DE TURNO
     function startClock() {
       const update = () => {
@@ -1128,6 +1159,7 @@
           shiftEl.textContent = 'Turno Noche / Fuera de horario';
           shiftEl.className = 'text-[11px] font-semibold text-slate-400';
         }
+        checkMidnightReset();
       };
       update();
       setInterval(update, 1000);
