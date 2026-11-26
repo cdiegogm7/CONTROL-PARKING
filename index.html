@@ -1382,6 +1382,15 @@ function startFirebasePolling() {
 
           const exitTime = document.querySelector('input[name="am-exit-time"]:checked').value;
           const requestedSlot = document.getElementById('am-slot-select').value;
+          if (requestedSlot !== 'AUTO') {
+            const num = Number(requestedSlot);
+            if (state.amParked.some(r => Number(r.slot) === num)) {
+              renderAmSlotOptions();
+              showToast(`El Cupo Amarillo #${num} ya está ocupado. Elige otro disponible o deja asignación automática.`, 'error');
+              return;
+            }
+          }
+          
           const assignedSlot = resolveSlotAssignment(requestedSlot);
 
           const newAmRecord = {
@@ -1488,6 +1497,54 @@ function startFirebasePolling() {
         if (!usedSlots.has(i)) return i;
       }
       return 1;
+    }
+
+    function renderAmSlotOptions() {
+      const select = document.getElementById('am-slot-select');
+      if (!select) return;
+
+      const previousValue = select.value;
+      const occupiedBySlot = new Map();
+      state.amParked.forEach(rec => {
+        occupiedBySlot.set(Number(rec.slot), rec);
+      });
+
+      const makeOption = (slotNum, baseLabel) => {
+        const occ = occupiedBySlot.get(slotNum);
+        if (occ) {
+          const firstName = (occ.owner || 'Otro operador').split(' ')[0];
+          return `<option value="${slotNum}" disabled class="bg-slate-100 text-slate-400">🔒 Cupo Amarillo #${slotNum} — OCUPADO (${escapeHtml(firstName)} · Sale ${escapeHtml(occ.exitTime)})</option>`;
+        }
+        return `<option value="${slotNum}" class="text-slate-800 bg-white">${baseLabel}</option>`;
+      };
+
+      select.innerHTML = `
+        <option value="AUTO">Asignar automáticamente en el plano (1 - 12)</option>
+        <optgroup label="Zona Amarilla Superior (7 cupos)">
+          ${makeOption(1, 'Cupo Amarillo #1 (Superior Izq - junto a Diamante)')}
+          ${makeOption(2, 'Cupo Amarillo #2 (Superior)')}
+          ${makeOption(3, 'Cupo Amarillo #3 (Superior)')}
+          ${makeOption(4, 'Cupo Amarillo #4 (Superior)')}
+          ${makeOption(5, 'Cupo Amarillo #5 (Superior)')}
+          ${makeOption(6, 'Cupo Amarillo #6 (Superior)')}
+          ${makeOption(7, 'Cupo Amarillo #7 (Superior)')}
+          ${makeOption(8, 'Cupo Amarillo #8 (Superior Der - junto a Motos)')}
+        </optgroup>
+        <optgroup label="Zona Amarilla Intermedia (1 cupo)">
+          ${makeOption(9, 'Cupo Amarillo #9 (Aislado Derecha)')}
+        </optgroup>
+        <optgroup label="Zona Amarilla Inferior (3 cupos)">
+          ${makeOption(10, 'Cupo Amarillo #10 (Inferior Izq)')}
+          ${makeOption(11, 'Cupo Amarillo #11 (Inferior Centro)')}
+          ${makeOption(12, 'Cupo Amarillo #12 (Inferior Der - junto a Motos)')}
+        </optgroup>
+      `;
+
+      if (previousValue !== 'AUTO' && occupiedBySlot.has(Number(previousValue))) {
+        select.value = 'AUTO';
+      } else {
+        select.value = previousValue || 'AUTO';
+      }
     }
 
     const DEVICE_ID_KEY = 'cc_parking_device_id_v1';
@@ -1656,6 +1713,7 @@ function startFirebasePolling() {
       renderActiveLists();
       renderParkingMap();
       renderDirectory();
+      renderAmSlotOptions();
       lucide.createIcons();
     }
 
