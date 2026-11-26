@@ -926,7 +926,8 @@
       selectedVehicleId: null,
       lastResetDate: null,
       firebaseUrl: 'https://controlparking-cc-default-rtdb.firebaseio.com/',
-      syncInterval: null
+      syncInterval: null,
+      eventSource: null
     };
 
     // 3. INICIALIZACIÓN
@@ -965,16 +966,17 @@
         try {
           const parsed = JSON.parse(savedActivity);
           if (parsed.date === todayKey) {
-            state.amParked = parsed.amParked || [];
-            state.pmIntents = parsed.pmIntents || [];
+            state.amParked = normalizeRecords(parsed.amParked);
+            state.pmIntents = normalizeRecords(parsed.pmIntents);
           } else {
-            // Cambio de día automático: reinicia registros diarios
-            saveActivityLocal();
+            state.amParked = [];
+            state.pmIntents = [];
           }
         } catch (e) {
           state.amParked = [];
           state.pmIntents = [];
         }
+      }
       }
 
       // Cargar configuración Firebase si existe
@@ -1042,61 +1044,144 @@
       showToast('Desconectado. Usando almacenamiento local del navegador.', 'info');
     }
 
-    function startFirebasePolling() {
-      if (state.syncInterval) clearInterval(state.syncInterval);
-      if (!state.firebaseUrl) return;
-      pullFromFirebase(false);
-      state.syncInterval = setInterval(() => pullFromFirebase(false), 8000);
-    }
+  function normalizeRecords(raw) {
+  if (!raw) return [];
+  const items = Array.isArray(raw) ? raw : Object.values(raw);
+  return items.filter(item => item && typeof item === 'object' && item.recordId);
+}
 
-    async function pushToFirebase() {
-      if (!state.firebaseUrl) return;
-      try {
-        const todayKey = getTodayDateKey();
-        const endpoint = `${state.firebaseUrl}/cc_parking/${todayKey}.json`;
-        await fetch(endpoint, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            amParked: state.amParked,
-            pmIntents: state.pmIntents,
-            updatedAt: Date.now()
-          })
-        });
-        updateSyncUI(true, 'Sincronizado');
-      } catch (err) {
-        updateSyncUI(false, 'Error Red');
+function persistLocalActivityOnly() {
+  const todayKey = getTodayDateKey();
+  if (!state.lastResetDate) state.lastResetDate = todayKey;
+
+  localStorage.setItem(STORAGE_KEY_ACTIVITY, JSON.stringify({
+    date: todayKey,
+    lastResetDate: state.lastResetDate,
+    amParked: state.amParked,
+    pmIntents: state.pmIntents
+  }));
+}
+
+async function saveSingleRecordToFirebase(listName, record) {
+  persistLocalActivityOnly();
+  if (!state.firebaseUrl || !record || !record.recordId) return;
+
+  try {
+    const todayKey = getTodayDateKey();
+    const endpoint = `${state.firebaseUrl}/cc_parking/${todayKey}/${listName}/${record.recordId}.json`;
+    const res = await fetch(endpoint, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(record)
+    });
+    if (!res.ok) throw new Error('HTTP error');
+    updateSyncUI(true, 'Sincronizado');
+  } catch (err) {
+    updateSyncUI(false, 'Error Red');
+  }
+}
+
+async function deleteSingleRecordFromFirebase(listName, recordId) {
+  persistLocalActivityOnly();
+  if (!state.firebaseUrl || !recordId) return;
+
+  try {
+    const todayKey = getTodayDateKey();
+    const endpoint = `${state.firebaseUrl}/cc_parking/${todayKey}/${listName}/${recordId}.json`;
+    const res = await fetch(endpoint, { method: 'DELETE' });
+    if (!res.ok) throw new Error('HTTP error');
+    updateSyncUI(true, 'Sincronizado');
+  } catch (err) {
+    updateSyncUI(false, 'Error Red');
+  }
+}
+
+async function pushToFirebase() {
+  persistLocalActivityOnly();
+  if (!state.firebaseUrl) return;
+
+  try {
+    const todayKey = getTodayDateKey();
+    const endpoint = `${state.firebaseUrl}/cc_parking/${todayKey}.json`;
+    const amMap = {};
+    const pmMap = {};
+
+    state.amParked.forEach(r => { if (r && r.recordId) amMap[r.recordId] = r; });
+    state.pmIntents.forEach(r => { if (r && r.recordId) pmMap[r.recordId] = r; });
+
+    await fetch(endpoint, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        amParked: amMap,
+        pmIntents: pmMap,
+        updatedAt: Date.now()
+      })
+    });
+    updateSyncUI(true, 'Sincronizado');
+  } catch (err) {
+    updateSyncUI(false, 'Error Red');
+  }
+}
+
+async function pullFromFirebase(notify = false) {
+  if (!state.firebaseUrl) return;
+
+  try {
+    const todayKey = getTodayDateKey();
+    const endpoint = `${state.firebaseUrl}/cc_parking/${todayKey}.json`;
+    const res = await fetch(endpoint);
+    if (!res.ok) throw new Error('HTTP error');
+    const data = await res.json();
+    updateSyncUI(true, 'En Vivo (Nube)');
+
+    if (data) {
+      state.amParked = normalizeRecords(data.amParked);
+      state.pmIntents = normalizeRecords(data.pmIntents);
+      persistLocalActivityOnly();
+      renderAll();
+    } else if (state.amParked.length > 0 || state.pmIntents.length > 0) {
+      const confirmRes = await fetch(endpoint);
+      const confirmData = confirmRes.ok ? await confirmRes.json() : null;
+      if (!confirmData) {
+        await pushToFirebase();
       }
     }
 
-    async function pullFromFirebase(notify = false) {
-      if (!state.firebaseUrl) return;
-      try {
-        const todayKey = getTodayDateKey();
-        const endpoint = `${state.firebaseUrl}/cc_parking/${todayKey}.json`;
-        const res = await fetch(endpoint);
-        if (!res.ok) throw new Error('HTTP error');
-        const data = await res.json();
-        updateSyncUI(true, 'En Vivo (Nube)');
-        if (data) {
-          state.amParked = data.amParked || [];
-          state.pmIntents = data.pmIntents || [];
-          localStorage.setItem(STORAGE_KEY_ACTIVITY, JSON.stringify({
-            date: todayKey,
-            amParked: state.amParked,
-            pmIntents: state.pmIntents
-          }));
-          renderAll();
-        } else {
-          // Inicializar nodo en Firebase si está vacío
-          await pushToFirebase();
-        }
-        if (notify) showToast('¡Conectado en tiempo real con Firebase!', 'success');
-      } catch (err) {
-        updateSyncUI(false, 'Sin conexión nube');
-        if (notify) showToast('No se pudo conectar. Verifica que la base esté en modo prueba.', 'error');
-      }
-    }
+    if (notify) showToast('¡Conectado en tiempo real con Firebase!', 'success');
+  } catch (err) {
+    updateSyncUI(false, 'Sin conexión nube');
+    if (notify) showToast('No se pudo conectar. Verifica que la base esté en modo prueba.', 'error');
+  }
+}
+
+function startFirebaseRealtimeStream() {
+  if (state.eventSource) {
+    state.eventSource.close();
+    state.eventSource = null;
+  }
+  if (state.syncInterval) {
+    clearInterval(state.syncInterval);
+    state.syncInterval = null;
+  }
+  if (!state.firebaseUrl) return;
+
+  pullFromFirebase(false);
+
+  const todayKey = getTodayDateKey();
+  const streamUrl = `${state.firebaseUrl}/cc_parking/${todayKey}.json`;
+  const es = new EventSource(streamUrl);
+
+  es.addEventListener('put', () => pullFromFirebase(false));
+  es.addEventListener('patch', () => pullFromFirebase(false));
+  state.eventSource = es;
+
+  state.syncInterval = setInterval(() => pullFromFirebase(false), 10000);
+}
+
+function startFirebasePolling() {
+  startFirebaseRealtimeStream();
+}
 
   function checkMidnightReset() {
   const todayBogota = getTodayDateKey(); // Fecha YYYY-MM-DD en America/Bogota
@@ -1268,7 +1353,7 @@
 
     // 8. ENVÍO DE FORMULARIO CHECK-IN / INTENCIÓN
     function setupForms() {
-      document.getElementById('checkin-form').addEventListener('submit', (e) => {
+      document.getElementById('checkin-form').addEventListener('submit', async (e) => {
         e.preventDefault();
         if (!state.selectedVehicleId) {
           showToast('Por favor selecciona un operador o vehículo del listado.', 'error');
@@ -1279,15 +1364,18 @@
         const vehicle = state.vehicles.find(v => v.id === state.selectedVehicleId);
         if (!vehicle) return;
 
+        // Leer lo más reciente de la nube antes de validar duplicados y cupos
+        if (state.firebaseUrl) {
+          await pullFromFirebase(false);
+        }
+
         const role = document.querySelector('input[name="shift-role"]:checked').value;
 
         if (role === 'AM_PARKED') {
-          // Validar si ya está registrado en AM
           if (state.amParked.some(r => r.vehicleId === vehicle.id)) {
             showToast(`${vehicle.owner} ya tiene su vehículo registrado en el Turno Mañana.`, 'error');
             return;
           }
-          // Validar límite máximo de 12 cupos amarillos
           if (state.amParked.length >= 12) {
             showToast('Los 12 cupos amarillos ya están ocupados por registros del CC.', 'error');
             return;
@@ -1297,7 +1385,7 @@
           const requestedSlot = document.getElementById('am-slot-select').value;
           const assignedSlot = resolveSlotAssignment(requestedSlot);
 
-          state.amParked.push({
+          const newAmRecord = {
             recordId: 'am_' + Date.now(),
             vehicleId: vehicle.id,
             owner: vehicle.owner,
@@ -1309,43 +1397,45 @@
             slot: assignedSlot,
             timestamp: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' }),
             createdByDeviceId: getDeviceId()
-          });
+          };
 
-          saveActivityLocal();
+          state.amParked.push(newAmRecord);
           renderAll();
           clearSelectedVehicle();
+          await saveSingleRecordToFirebase('amParked', newAmRecord);
           showToast(`Ingreso AM registrado para ${vehicle.owner} (Cupo #${assignedSlot}, sale ${exitTime}).`, 'success');
 
         } else {
-          // Turno Tarde - Intención
           if (state.pmIntents.some(r => r.vehicleId === vehicle.id)) {
             showToast(`${vehicle.owner} ya registró su intención para el Turno Tarde.`, 'error');
             return;
           }
 
           const arrivalTime = document.getElementById('pm-arrival-time').value;
-          state.pmIntents.push({
+          const newPmRecord = {
             recordId: 'pm_' + Date.now(),
             vehicleId: vehicle.id,
             owner: vehicle.owner,
             plate: vehicle.plate || 'SIN PLACA',
             type: vehicle.type,
             model: vehicle.model,
-            color: vehicle.color,            
+            color: vehicle.color,
             arrivalTime,
-            parkingConfirmed:false,
-            assignedSlot:null,
-            arrivalReal:null,
+            parkingConfirmed: false,
+            assignedSlot: null,
+            arrivalReal: null,
             timestamp: new Date().toLocaleTimeString('es-CO', { timeZone: 'America/Bogota', hour: '2-digit', minute: '2-digit' }),
             createdByDeviceId: getDeviceId()
-          });
+          };
 
-          saveActivityLocal();
+          state.pmIntents.push(newPmRecord);
           renderAll();
           clearSelectedVehicle();
+          await saveSingleRecordToFirebase('pmIntents', newPmRecord);
           showToast(`Intención Turno Tarde registrada para ${vehicle.owner}.`, 'success');
         }
       });
+
 
       // Formulario Modal Agregar/Editar Vehículo
       document.getElementById('vehicle-form').addEventListener('submit', (e) => {
@@ -1431,7 +1521,7 @@
       if (!rec) return;
       if (!canRemoveRecord(rec)) return;
       state.amParked = state.amParked.filter(r => r.recordId !== recordId);
-      saveActivityLocal();
+      deleteSingleRecordFromFirebase('amParked', recordId);
       renderAll();
       showToast(`Cupo #${rec.slot} liberado (${rec.owner} salió).`, 'info');
      }
@@ -1441,7 +1531,7 @@
       if (!rec) return;
       if (!canRemoveRecord(rec)) return;
       state.pmIntents = state.pmIntents.filter(r => r.recordId !== recordId);
-      saveActivityLocal();
+      deleteSingleRecordFromFirebase('pmIntents', recordId);
       renderAll();
       showToast(`Intención de ${rec.owner} retirada.`, 'info');
     }
@@ -1474,21 +1564,18 @@
           r.recordId === recordId
             );
       if(!record) return;
-      record.parkingConfirmed =
-        true;
-      record.assignedSlot =
-        slotNumber;
-      record.arrivalReal =
-      new Date()
-      .toLocaleTimeString(
+      record.parkingConfirmed = true;
+      record.assignedSlot = slotNumber;
+      record.arrivalReal = new Date().toLocaleTimeString(
         "es-CO",
         {
+          timeZone: "America/Bogota",
           hour:"2-digit",
           minute:"2-digit"
             }
           );
-      saveActivityLocal();
       renderAll();
+      saveSingleRecordToFirebase('pmIntents', record);
       showToast(
         "Parqueadero confirmado",
          "success"
