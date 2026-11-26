@@ -1663,15 +1663,15 @@ function startFirebasePolling() {
       const amTotal = state.amParked.length;
       const exit1330 = state.amParked.filter(r => r.exitTime === '13:30').length;
       const exit1400 = state.amParked.filter(r => r.exitTime === '14:00').length;
+      const pmPending = state.pmIntents.filter(x => !x.parkingConfirmed).length;
       const pmTotal = state.pmIntents.length;
-      const pmParked =state.pmIntents.filter(x => x.parkingConfirmed).length;      
-      const otherAreasCount = Math.max(0, 12 - amTotal);
+      const otherAreasCount = Math.max(0, 12 - amTotal - pmParked);
 
       document.getElementById('kpi-am-count').textContent = amTotal;
       document.getElementById('kpi-exit-1330').textContent = exit1330;
       document.getElementById('kpi-exit-1400').textContent = exit1400;
-      document.getElementById('kpi-pm-count').textContent = pmTotal;
-      document.getElementById('kpi-balance-badge').textContent = `${amTotal} liberan vs ${pmTotal} Llevan vehículo`;
+      document.getElementById('kpi-pm-count').textContent = pmPending;
+      document.getElementById('kpi-balance-badge').textContent = `${amTotal} liberan vs ${pmPending} Llevan vehículo`;
       document.getElementById('kpi-other-areas').textContent = `${otherAreasCount} sin registro CC (otras áreas / libres)`;
 
       // Cálculo del Semáforo de Probabilidad para Turno Tarde
@@ -1681,34 +1681,43 @@ function startFirebasePolling() {
       const desc = document.getElementById('kpi-prob-desc');
       const iconWrap = document.getElementById('kpi-prob-icon-wrap');
 
-      if (amTotal === 0) {
+      if (amTotal === 0 && pmPending === 0) {
         card.className = 'bg-white rounded-2xl p-5 shadow-sm border-2 border-slate-200 flex flex-col justify-between transition-colors';
         dot.className = 'w-3 h-3 rounded-full bg-slate-400';
         title.className = 'text-lg font-extrabold text-slate-700';
         title.textContent = 'Sin reportes AM aún';
         iconWrap.className = 'p-2.5 rounded-xl bg-slate-100 text-slate-600';
         desc.innerHTML = `Aún no hay vehículos del CC reportados en la mañana. Si nadie del CC llevó carro, los 12 cupos amarillos dependen de otras áreas.`;
-      } else if (pmTotal <= amTotal) {
+      } else if (pmPending === 0) {
         card.className = 'bg-white rounded-2xl p-5 shadow-sm border-2 border-emerald-300 flex flex-col justify-between transition-colors';
         dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse-soft';
         title.className = 'text-lg font-extrabold text-emerald-700';
         title.textContent = 'Probabilidad Alta';
         iconWrap.className = 'p-2.5 rounded-xl bg-emerald-50 text-emerald-600';
-        desc.innerHTML = `Se liberan <strong>${amTotal} cupos garantizados</strong> del CC (<strong>${exit1330}</strong> a las 13:30 y <strong>${exit1400}</strong> a las 14:00) y hay <strong>${pmTotal}</strong> compañero(s) interesado(s) en la tarde. ¡Buena oportunidad llegando puntual!`;
-      } else if (pmTotal <= amTotal + 2) {
+        desc.innerHTML = `Se liberan <strong>${amTotal} cupos</strong> del CC (<strong>${exit1330}</strong> a las 13:30 y <strong>${exit1400}</strong> a las 14:00) y aún no hay compañeros pendientes en la tarde.`;
+      } else if (amTotal >= pmPending) {
+        card.className = 'bg-white rounded-2xl p-5 shadow-sm border-2 border-emerald-300 flex flex-col justify-between transition-colors';
+        dot.className = 'w-3 h-3 rounded-full bg-emerald-500 animate-pulse-soft';
+        title.className = 'text-lg font-extrabold text-emerald-700';
+        title.textContent = 'Probabilidad Alta';
+        iconWrap.className = 'p-2.5 rounded-xl bg-emerald-50 text-emerald-600';
+        desc.innerHTML = `Se liberan <strong>${amTotal} cupos</strong> del CC (<strong>${exit1330}</strong> a las 13:30 y <strong>${exit1400}</strong> a las 14:00) frente a <strong>${pmPending}</strong> compañero(s) con intención en la tarde. ¡Buena oportunidad llegando puntual!`;
+      } else if (amTotal > 0 && (pmPending - amTotal) === 1) {
         card.className = 'bg-white rounded-2xl p-5 shadow-sm border-2 border-amber-300 flex flex-col justify-between transition-colors';
         dot.className = 'w-3 h-3 rounded-full bg-amber-500 animate-pulse-soft';
         title.className = 'text-lg font-extrabold text-amber-700';
         title.textContent = 'Probabilidad Media';
         iconWrap.className = 'p-2.5 rounded-xl bg-amber-50 text-amber-600';
-        desc.innerHTML = `Se liberan <strong>${amTotal} cupos</strong> del CC entre 13:30 y 14:00, pero ya hay <strong>${pmTotal} compañeros</strong> con intención de ir en carro. Llega antes de las 13:30 para aprovechar el primer relevo.`;
+        desc.innerHTML = `Se liberan <strong>${amTotal} cupos</strong> del CC entre 13:30 y 14:00, pero hay <strong>${pmPending} compañeros</strong> con intención de ir en carro. Llega antes de las 13:30 para aprovechar el primer relevo.`;
       } else {
         card.className = 'bg-white rounded-2xl p-5 shadow-sm border-2 border-rose-300 flex flex-col justify-between transition-colors';
         dot.className = 'w-3 h-3 rounded-full bg-rose-500 animate-pulse-soft';
         title.className = 'text-lg font-extrabold text-rose-700';
         title.textContent = 'Probabilidad Baja (Alta Demanda)';
         iconWrap.className = 'p-2.5 rounded-xl bg-rose-50 text-rose-600';
-        desc.innerHTML = `Solo se liberan <strong>${amTotal} cupos</strong> del CC y ya hay <strong>${pmTotal} interesados</strong> en la tarde. Recuerda que vigilancia asigna por estricto orden de llegada.`;
+        desc.innerHTML = amTotal === 0
+          ? `No hay cupos AM registrados para liberar y ya hay <strong>${pmPending} compañeros</strong> con intención en la tarde. Vigilar orden de llegada en portería.`
+          : `Solo se libera <strong>${amTotal} cupo</strong> del CC y ya hay <strong>${pmPending} compañeros</strong> con intención en la tarde. Alta competencia por parqueadero.`;
       }
     }
 
