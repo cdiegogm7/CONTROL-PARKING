@@ -986,8 +986,7 @@
         document.getElementById('firebase-url-input').value = savedFb;
         startFirebasePolling();
       }
-    }
-
+    
     function saveVehiclesLocal() {
       localStorage.setItem(STORAGE_KEY_VEHICLES, JSON.stringify(state.vehicles));
       pushToFirebase();
