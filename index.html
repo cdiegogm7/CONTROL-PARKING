@@ -1663,6 +1663,7 @@ function startFirebasePolling() {
       const amTotal = state.amParked.length;
       const exit1330 = state.amParked.filter(r => r.exitTime === '13:30').length;
       const exit1400 = state.amParked.filter(r => r.exitTime === '14:00').length;
+      const pmParked = state.pmIntents.filter(x => x.parkingConfirmed).length;
       const pmPending = state.pmIntents.filter(x => !x.parkingConfirmed).length;
       const pmTotal = state.pmIntents.length;
       const otherAreasCount = Math.max(0, 12 - amTotal - pmParked);
